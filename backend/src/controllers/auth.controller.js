@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import prisma from "../prisma.js";
 import { signinToken } from "../utils/jwt.js";
+import { seedDefaultCategories } from "../utils/category.js";
 
 export const register = async (req, res) => {
     try {
@@ -18,11 +19,9 @@ export const register = async (req, res) => {
 
         // 2. Check if password is at least 6 characters long
         if (password.length < 6) {
-            return res
-                .status(400)
-                .json({
-                    message: "Password must be at least 6 characters long",
-                });
+            return res.status(400).json({
+                message: "Password must be at least 6 characters long",
+            });
         }
 
         // 3. Check if user already exists
@@ -45,7 +44,9 @@ export const register = async (req, res) => {
             },
         });
 
-        // 6. Return success response
+        // 6. Seed default categories for the new user
+        await seedDefaultCategories(user.id);
+        // 7. Return success response
         return res
             .status(201)
             .json({ message: "User registered successfully", user });
@@ -104,7 +105,7 @@ export const getMe = async (req, res) => {
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
-            select: { id: true, name: true, email: true,createdAt:true},
+            select: { id: true, name: true, email: true, createdAt: true },
         });
 
         return res.status(200).json({ user });

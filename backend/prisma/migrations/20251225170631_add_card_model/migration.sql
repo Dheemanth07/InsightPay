@@ -17,5 +17,5 @@ CREATE TABLE `Card` (
 ALTER TABLE `Card` ADD CONSTRAINT `Card_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- RedefineIndex
-CREATE UNIQUE INDEX `User_email_key` ON `User`(`email`);
+-- CREATE UNIQUE INDEX `User_email_key` ON `User`(`email`);
 DROP INDEX `user_email_key` ON `user`;

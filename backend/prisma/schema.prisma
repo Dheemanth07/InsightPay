@@ -79,7 +79,9 @@ model Category{
   id String @id @default(uuid())
   name String
   type CategoryType
+  
   isDefault Boolean @default(false)
+  isSystem  Boolean  @default(false)
 
   userId Int
   user User @relation(fields:[userId],references:[id])

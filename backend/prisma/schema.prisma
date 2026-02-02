@@ -13,6 +13,7 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// User Model
 model User{
   id Int @id @default(autoincrement())
   name String
@@ -25,8 +26,10 @@ model User{
   sentTransactions Transaction[] @relation("SentTransactions")
   receivedTransactions Transaction[] @relation("ReceivedTransactions")
   cards Card[]
+  categories Category[]
 }
 
+// Transaction Model
 model Transaction{
   id Int @id @default(autoincrement())
 
@@ -42,6 +45,9 @@ model Transaction{
   toUserId Int?
   toUser User? @relation("ReceivedTransactions",fields: [toUserId],references: [id])
 
+  categoryId String?
+  category Category? @relation(fields:[categoryId],references:[id])
+
   qrExpiresAt DateTime?
 
   createdAt DateTime @default(now())
@@ -51,22 +57,10 @@ model Transaction{
   @@index([toUserId])
   @@index([createdAt])
   @@index([reference])
+  @@index([categoryId])
 }
 
-enum TxnType{
-  ADD
-  SEND
-  RECEIVE
-  QR
-}
-
-enum TxnStatus{
-  PENDING
-  SUCCESS
-  FAILED
-  EXPIRED
-}
-
+// Card Model
 model Card{
   id String @id @default(uuid())
   userId Int 
@@ -78,4 +72,44 @@ model Card{
   createdAt DateTime @default(now())
 
   user User @relation(fields:[userId],references:[id])
+}
+
+// Category Model
+model Category{
+  id String @id @default(uuid())
+  name String
+  type CategoryType
+  isDefault Boolean @default(false)
+
+  userId Int
+  user User @relation(fields:[userId],references:[id])
+
+  transactions Transaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId,name])
+}
+
+// Transaction Type Enum
+enum TxnType{
+  ADD
+  SEND
+  RECEIVE
+  QR
+}
+
+// Transaction Status Enum
+enum TxnStatus{
+  PENDING
+  SUCCESS
+  FAILED
+  EXPIRED
+}
+
+// Category Type Enum
+enum CategoryType{
+  INCOME
+  EXPENSE
 }

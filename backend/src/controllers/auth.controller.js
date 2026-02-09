@@ -42,6 +42,12 @@ export const register = async (req, res) => {
                 email,
                 password: hashedPassword,
             },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                createdAt: true,
+            },
         });
 
         // 6. Seed default categories for the new user
@@ -72,27 +78,30 @@ export const login = async (req, res) => {
 
         // 2. Check if user exists
         const user = await prisma.user.findUnique({ where: { email } });
-
-        if (!user) {
-            return res
-                .status(401)
-                .json({ message: "User does not exist with email" });
-        }
+        const isMatch = user
+            ? await bcrypt.compare(password, user.password)
+            : false;
 
         // 3. Compare provided password with stored hashed password
-        const isMatch = await bcrypt.compare(password, user.password);
 
         if (!isMatch) {
-            return res.status(401).json({ message: "Invalid password" });
+            return res
+                .status(401)
+                .json({ message: "Invalid email or password" });
         }
 
         // 4. Generate JWT token
         const token = signinToken({ id: user.id, email: user.email });
 
+        const { password: _, ...userWithoutPassword } = user; /*Extract password from user object and rename password to _ to exclude it from the response 
+        and ...userWithoutPassword will contain all user fields except password*/
+
         // 5. Return success response with token
-        return res
-            .status(200)
-            .json({ message: "Login successful", token, user });
+        return res.status(200).json({
+            message: "Login successful",
+            user: userWithoutPassword,
+            token,
+        });
     } catch (err) {
         console.error("Login error: ", err);
         return res.status(500).json({ message: "Internal server error" });
@@ -108,7 +117,9 @@ export const getMe = async (req, res) => {
             select: { id: true, name: true, email: true, createdAt: true },
         });
 
-        return res.status(200).json({ user });
+        return res
+            .status(200)
+            .json({ message: "User details retrieved successfully", user });
     } catch (err) {
         console.error("Error retrieving user details:", err);
         return res.status(500).json({ message: "Internal server error" });

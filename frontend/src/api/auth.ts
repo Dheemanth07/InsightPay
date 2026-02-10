@@ -1,9 +1,15 @@
 import api from "./axios";
 
-export const registerUser = (data: {
+export interface UserData {
     name: string;
     email: string;
     password: string;
-}) => {
-    return api.post("http://localhost:5000/auth/register", data);
-};
+}
+
+export const registerUser = (data: UserData) =>
+    api.post("/auth/register", data);
+
+export const loginUser = (data: Omit<UserData, "name">) =>
+    api.post("/auth/login", data);
+
+export const getMe = () => api.get("/auth/me");

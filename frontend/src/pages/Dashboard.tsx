@@ -1,4 +1,5 @@
 import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
 
 export default function Dashboard() {
     const { user } = useAuth();
@@ -37,18 +38,8 @@ export default function Dashboard() {
                     maxWidth: "300px",
                 }}
             >
-                <h3>Wallet Balance</h3>
-                <p style={{ fontSize: "20px", fontWeight: "bold" }}>₹ 0.00</p>
-                <small>(Will be dynamic in next phase)</small>
-            </div>
-
-            {/* Quick Actions */}
-            <div style={{ marginTop: "20px" }}>
-                <h3>Quick Actions</h3>
-                <button disabled style={{ marginRight: "10px" }}>
-                    Send Money
-                </button>
-                <button disabled>Receive Money</button>
+                {/* Quick Actions */}
+                <Link to="/wallet">Go to Wallet</Link>
             </div>
 
             {/* Coming Soon */}

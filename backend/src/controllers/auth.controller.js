@@ -93,7 +93,8 @@ export const login = async (req, res) => {
         // 4. Generate JWT token
         const token = signinToken({ id: user.id, email: user.email });
 
-        const { password: _, ...userWithoutPassword } = user; /*Extract password from user object and rename password to _ to exclude it from the response 
+        const { password: _, ...userWithoutPassword } =
+            user; /*Extract password from user object and rename password to _ to exclude it from the response 
         and ...userWithoutPassword will contain all user fields except password*/
 
         // 5. Return success response with token
@@ -114,12 +115,16 @@ export const getMe = async (req, res) => {
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
-            select: { id: true, name: true, email: true, createdAt: true },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                balance: true,
+                createdAt: true,
+            },
         });
 
-        return res
-            .status(200)
-            .json({ message: "User details retrieved successfully", user });
+        return res.status(200).json(user);
     } catch (err) {
         console.error("Error retrieving user details:", err);
         return res.status(500).json({ message: "Internal server error" });

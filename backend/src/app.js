@@ -10,6 +10,8 @@ import categoryRoutes from "./routes/category.routes.js";
 
 const app = express();
 
+app.disable("etag");
+
 app.use(cors());
 app.use(helmet());
 app.use(express.json());

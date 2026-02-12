@@ -32,7 +32,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const res = await api.get("/auth/me", {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setUser(res.data.user);
+
+            console.log("AUTH /me RESPONSE:", res.data);
+
+            setUser(res.data);
         } catch (err) {
             localStorage.removeItem("token");
             setUser(null);

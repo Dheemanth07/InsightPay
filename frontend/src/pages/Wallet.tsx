@@ -22,7 +22,10 @@ export default function Wallet() {
     const fetchWalletData = async () => {
         try {
             const userRes = await api.get("/auth/me");
-            setBalance(Number(userRes.data.user.balance || 0));
+
+            console.log("WALLET USER RES:", userRes.data);
+            const userData = userRes.data.user ?? userRes.data;
+            setBalance(Number(userData?.balance || 0));
 
             const txRes = await api.get("wallet/transactions?limit=10");
             setTransactions(txRes.data.result?.transactions || []);

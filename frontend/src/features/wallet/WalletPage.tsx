@@ -33,7 +33,11 @@ export default function Wallet() {
             setLoading(true);
 
             const userRes = await api.get("/auth/me");
-            setBalance(Number(userRes.data.user.balance || 0));
+
+            console.log("USER RES FULL:", userRes);
+            console.log("USER RES DATA:", userRes.data);
+
+            setBalance(Number(userRes.data.balance || 0));
 
             const txRes = await api.get("/wallet/transactions?limit=10");
             setTransactions(txRes.data.result?.transactions || []);
@@ -70,7 +74,7 @@ export default function Wallet() {
             // Optimistic update
             setBalance((prev) => prev + amount);
 
-            const res = await api.post("/wallet/add", { amount });
+            await api.post("/wallet/add", { amount });
 
             setAddAmount("");
             await fetchWalletData(); // refresh to sync with server

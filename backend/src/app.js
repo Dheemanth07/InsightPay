@@ -1,12 +1,12 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import authRoutes from "./routes/auth.routes.js";
-import walletRoutes from "./routes/wallet.routes.js";
-import cardRoutes from "./routes/card.routes.js";
-import qrRoutes from "./routes/qr.routes.js";
-import transactionRoutes from "./routes/transaction.routes.js";
-import categoryRoutes from "./routes/category.routes.js";
+import authRoutes from "./features/auth/auth.routes.js";
+import walletRoutes from "./features/wallet/wallet.routes.js";
+import cardRoutes from "./features/cards/card.routes.js";
+import qrRoutes from "./features/qr/qr.routes.js";
+import transactionRoutes from "./features/transactions/transaction.routes.js";
+import categoryRoutes from "./features/categories/category.routes.js";
 
 const app = express();
 

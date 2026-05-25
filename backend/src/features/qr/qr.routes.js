@@ -1,6 +1,10 @@
 import express from "express";
-import { authMiddleware } from "../middlewares/auth.middleware.js";
-import { generateQR,validateQR,confirmQRPayment } from "../controllers/qr.controller.js";
+import {
+    confirmQRPayment,
+    generateQR,
+    validateQR,
+} from "./qr.controller.js";
+import { authMiddleware } from "../../middlewares/auth.middleware.js";
 
 const router = express.Router();
 

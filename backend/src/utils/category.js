@@ -11,8 +11,9 @@ export async function getOrCreateCategory(userId) {
             data: {
                 userId,
                 name: "Uncategorized",
+                type: "EXPENSE",
                 isDefault: true,
-                userId,
+                isSystem: true,
             },
         });
     }

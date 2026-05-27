@@ -14,43 +14,44 @@ generator client {
 }
 
 // User Model
-model User{
-  id Int @id @default(autoincrement())
-  name String
-  email String @unique
-  password String
-  balance Decimal @default(0)
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  balance   Decimal  @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  sentTransactions Transaction[] @relation("SentTransactions")
+
+  sentTransactions     Transaction[] @relation("SentTransactions")
   receivedTransactions Transaction[] @relation("ReceivedTransactions")
-  cards Card[]
-  categories Category[]
+  cards                Card[]
+  categories           Category[]
 }
 
 // Transaction Model
-model Transaction{
+model Transaction {
   id Int @id @default(autoincrement())
 
   reference String? @unique
-  amount Decimal
+  amount    Decimal
 
-  type TxnType
+  type   TxnType
+  method TxnMethod @default(MANUAL)
   status TxnStatus
 
   fromUserId Int?
-  fromUser User? @relation("SentTransactions",fields: [fromUserId],references: [id])
+  fromUser   User? @relation("SentTransactions", fields: [fromUserId], references: [id])
 
   toUserId Int?
-  toUser User? @relation("ReceivedTransactions",fields: [toUserId],references: [id])
+  toUser   User? @relation("ReceivedTransactions", fields: [toUserId], references: [id])
 
   categoryId String?
-  category Category? @relation(fields:[categoryId],references:[id])
+  category   Category? @relation(fields: [categoryId], references: [id])
 
   qrExpiresAt DateTime?
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   updatedAt DateTime?
 
   @@index([fromUserId])
@@ -61,49 +62,54 @@ model Transaction{
 }
 
 // Card Model
-model Card{
-  id String @id @default(uuid())
-  userId Int 
-  cardToken String @unique
-  last4 String
-  brand String
+model Card {
+  id          String   @id @default(uuid())
+  userId      Int
+  cardToken   String   @unique
+  last4       String
+  brand       String
   expiryMonth Int
-  expiryYear Int
-  createdAt DateTime @default(now())
+  expiryYear  Int
+  createdAt   DateTime @default(now())
 
-  user User @relation(fields:[userId],references:[id])
+  user User @relation(fields: [userId], references: [id])
 }
 
 // Category Model
-model Category{
-  id String @id @default(uuid())
+model Category {
+  id   String       @id @default(uuid())
   name String
   type CategoryType
-  
-  isDefault Boolean @default(false)
-  isSystem  Boolean  @default(false)
 
-  userId Int
-  user User @relation(fields:[userId],references:[id])
+  isDefault Boolean @default(false)
+  isSystem  Boolean @default(false)
+
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id])
 
   transactions Transaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId,name])
+  @@unique([userId, name])
 }
 
 // Transaction Type Enum
-enum TxnType{
-  ADD
-  SEND
-  RECEIVE
-  QR
+enum TxnType {
+  DEPOSIT
+  TRANSFER
+  WITHDRAWAL
+}
+
+enum TxnMethod {
+  MANUAL
+  QR_CODE
+  SYSTEM
 }
 
 // Transaction Status Enum
-enum TxnStatus{
+enum TxnStatus {
   PENDING
   SUCCESS
   FAILED
@@ -111,7 +117,7 @@ enum TxnStatus{
 }
 
 // Category Type Enum
-enum CategoryType{
+enum CategoryType {
   INCOME
   EXPENSE
 }

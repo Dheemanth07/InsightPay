@@ -62,6 +62,7 @@ export function SignupPage() {
                 <label>
                     Name
                     <input
+                        autoComplete="name"
                         value={name}
                         onChange={(event) => setName(event.target.value)}
                         required
@@ -72,6 +73,7 @@ export function SignupPage() {
                     Email
                     <input
                         type="email"
+                        autoComplete="email"
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
                         required
@@ -82,6 +84,8 @@ export function SignupPage() {
                     Password
                     <input
                         type="password"
+                        autoComplete="new-password"
+                        minLength={6}
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                         required

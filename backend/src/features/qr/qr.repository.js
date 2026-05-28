@@ -5,7 +5,8 @@ export const createPendingQrTransaction = ({ reference, amount, receiverId, expi
         data: {
             reference,
             amount,
-            type: "QR",
+            type: "TRANSFER",
+            method: "QR_CODE",
             status: "PENDING",
             toUserId: receiverId,
             qrExpiresAt: expiresAt,

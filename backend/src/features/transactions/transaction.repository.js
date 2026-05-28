@@ -31,14 +31,14 @@ export const createTransactionWithBalanceUpdate = (
             },
         });
 
-        if (type === "SEND") {
+        if (type === "TRANSFER" || type === "WITHDRAWAL") {
             await tx.user.update({
                 where: { id: userId },
                 data: { balance: { decrement: amount } },
             });
         }
 
-        if (type === "ADD" || type === "RECEIVE") {
+        if (type === "DEPOSIT") {
             await tx.user.update({
                 where: { id: userId },
                 data: { balance: { increment: amount } },

@@ -22,7 +22,9 @@ export const createTransaction = async (req, res) => {
         return res.status(201).json(transaction);
     } catch (err) {
         console.error("Error creating transaction:", err);
-        return res.status(500).json({ message: "Internal server error" });
+        return res
+            .status(err.statusCode || 500)
+            .json({ message: err.message || "Internal server error" });
     }
 };
 

@@ -10,7 +10,7 @@ export const addMoneyTransaction = (userId, amount) => {
         await tx.transaction.create({
             data: {
                 amount,
-                type: "ADD",
+                type: "DEPOSIT",
                 status: "SUCCESS",
                 fromUserId: null,
                 toUserId: userId,
@@ -46,7 +46,7 @@ export const sendMoneyTransaction = (senderId, receiverId, amount) => {
         await tx.transaction.create({
             data: {
                 amount,
-                type: "SEND",
+                type: "TRANSFER",
                 status: "SUCCESS",
                 fromUserId: senderId,
                 toUserId: receiverId,

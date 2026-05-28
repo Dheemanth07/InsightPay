@@ -206,79 +206,6 @@ label {
     color: #63717a;
 }
 
-.app-layout {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-}
-
-.app-navigation {
-    background: #ffffff;
-    border-bottom: 1px solid #edf1f3;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-.nav-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 1.25rem;
-    height: 4rem;
-}
-
-.nav-logo {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #0d6b5f;
-    text-decoration: none;
-}
-
-.nav-menu {
-    display: flex;
-    list-style: none;
-    gap: 0;
-    margin: 0;
-    padding: 0;
-}
-
-.nav-link {
-    display: inline-block;
-    padding: 0 1rem;
-    height: 4rem;
-    line-height: 4rem;
-    color: #172026;
-    text-decoration: none;
-    border-bottom: 3px solid transparent;
-    transition: all 0.2s ease;
-}
-
-.nav-link:hover {
-    color: #0d6b5f;
-    border-bottom-color: #0d6b5f;
-}
-
-.nav-link.active {
-    color: #0d6b5f;
-    border-bottom-color: #0d6b5f;
-}
-
-.logout-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: inherit;
-}
-
-.logout-btn:hover {
-    color: #b42318;
-    border-bottom-color: #b42318;
-}
-
 @media (max-width: 720px) {
     .page-header,
     .transaction-row {
@@ -288,24 +215,5 @@ label {
 
     .wallet-actions {
         grid-template-columns: 1fr;
-    }
-
-    .nav-container {
-        flex-direction: column;
-        height: auto;
-        padding: 0.5rem;
-    }
-
-    .nav-menu {
-        flex-wrap: wrap;
-        width: 100%;
-        justify-content: center;
-    }
-
-    .nav-link {
-        padding: 0 0.75rem;
-        height: auto;
-        line-height: 2.5rem;
-        font-size: 0.875rem;
     }
 }

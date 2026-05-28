@@ -1,3 +1,4 @@
+import "../config/env.js";
 import crypto from "crypto";
 
 export function signQR(payload) {

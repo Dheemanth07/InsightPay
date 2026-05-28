@@ -1,7 +1,8 @@
 export type WalletTransaction = {
     id: number;
     amount: number | string;
-    direction: "SEND" | "RECEIVE";
+    type: "DEPOSIT" | "TRANSFER" | "WITHDRAWAL";
+    direction: "SEND" | "RECEIVE" | "WITHDRAWAL";
     signedAmount: number;
     status: string;
     createdAt: string;

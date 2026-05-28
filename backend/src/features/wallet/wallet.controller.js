@@ -2,6 +2,7 @@ import {
     addMoneyService,
     getTransactionHistoryService,
     sendMoneyService,
+    withdrawMoneyService,
 } from "./wallet.service.js";
 
 export const addMoney = async (req, res) => {
@@ -55,6 +56,28 @@ export const sendMoney = async (req, res) => {
         return res
             .status(500)
             .json({ message: err.message || "Failed to send money" });
+    }
+};
+
+export const withdrawMoney = async (req, res) => {
+    try {
+        const amount = Number(req.body.amount);
+
+        if (!amount || amount <= 0) {
+            return res.status(400).json({ message: "Invalid amount" });
+        }
+
+        const result = await withdrawMoneyService(req.user.id, amount);
+
+        return res.status(200).json({
+            message: "Money withdrawn successfully",
+            balance: result.balance,
+        });
+    } catch (err) {
+        console.error("Withdraw money error:", err);
+        return res
+            .status(500)
+            .json({ message: err.message || "Failed to withdraw money" });
     }
 };
 

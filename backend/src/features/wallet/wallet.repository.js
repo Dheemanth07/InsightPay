@@ -57,6 +57,33 @@ export const sendMoneyTransaction = (senderId, receiverId, amount) => {
     });
 };
 
+export const withdrawMoneyTransaction = (userId, amount) => {
+    return prisma.$transaction(async (tx) => {
+        const user = await tx.user.findUnique({ where: { id: userId } });
+
+        if (!user) throw new Error("User not found");
+
+        if (Number(user.balance) < amount) throw new Error("Insufficient balance");
+
+        const updatedUser = await tx.user.update({
+            where: { id: userId },
+            data: { balance: { decrement: amount } },
+        });
+
+        await tx.transaction.create({
+            data: {
+                amount,
+                type: "WITHDRAWAL",
+                status: "SUCCESS",
+                fromUserId: userId,
+                toUserId: null,
+            },
+        });
+
+        return updatedUser;
+    });
+};
+
 export const findWalletTransactions = ({ userId, limit, cursor, from, to }) => {
     const where = {
         OR: [{ fromUserId: userId }, { toUserId: userId }],

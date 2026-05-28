@@ -5,6 +5,7 @@ import {
     getWalletOwner,
     getWalletTransactions,
     sendMoney,
+    withdrawMoney,
 } from "../wallet.api";
 import type { WalletTransaction } from "../wallet.types";
 
@@ -17,6 +18,7 @@ export function WalletPage() {
     const [addAmount, setAddAmount] = useState("");
     const [receiverId, setReceiverId] = useState("");
     const [sendAmount, setSendAmount] = useState("");
+    const [withdrawAmount, setWithdrawAmount] = useState("");
     const [processing, setProcessing] = useState(false);
     const [actionError, setActionError] = useState("");
 
@@ -97,6 +99,32 @@ export function WalletPage() {
         }
     };
 
+    const handleWithdrawMoney = async () => {
+        const amount = Number(withdrawAmount);
+
+        if (!amount || amount <= 0) return;
+
+        if (amount > balance) {
+            setActionError("Insufficient balance");
+            return;
+        }
+
+        setProcessing(true);
+        setActionError("");
+
+        try {
+            setBalance((currentBalance) => currentBalance - amount);
+            await withdrawMoney(amount);
+            setWithdrawAmount("");
+            await fetchWalletData();
+        } catch (err) {
+            setActionError(getApiErrorMessage(err, "Withdrawal failed"));
+            await fetchWalletData();
+        } finally {
+            setProcessing(false);
+        }
+    };
+
     const loadMore = async () => {
         if (!nextCursor) return;
 
@@ -141,26 +169,50 @@ export function WalletPage() {
             {actionError && <p className="error-text">{actionError}</p>}
 
             <section className="wallet-actions">
-                <div className="panel">
-                    <h2>Add Money</h2>
-                    <label>
-                        Amount
-                        <input
-                            type="number"
-                            min="1"
-                            value={addAmount}
-                            onChange={(event) =>
-                                setAddAmount(event.target.value)
-                            }
-                        />
-                    </label>
-                    <button
-                        type="button"
-                        onClick={handleAddMoney}
-                        disabled={processing}
-                    >
-                        {processing ? "Processing..." : "Add Money"}
-                    </button>
+                <div className="wallet-actions-row">
+                    <div className="panel">
+                        <h2>Add Money</h2>
+                        <label>
+                            Amount
+                            <input
+                                type="number"
+                                min="1"
+                                value={addAmount}
+                                onChange={(event) =>
+                                    setAddAmount(event.target.value)
+                                }
+                            />
+                        </label>
+                        <button
+                            type="button"
+                            onClick={handleAddMoney}
+                            disabled={processing}
+                        >
+                            {processing ? "Processing..." : "Add Money"}
+                        </button>
+                    </div>
+
+                    <div className="panel">
+                        <h2>Withdraw Money</h2>
+                        <label>
+                            Amount
+                            <input
+                                type="number"
+                                min="1"
+                                value={withdrawAmount}
+                                onChange={(event) =>
+                                    setWithdrawAmount(event.target.value)
+                                }
+                            />
+                        </label>
+                        <button
+                            type="button"
+                            onClick={handleWithdrawMoney}
+                            disabled={processing}
+                        >
+                            {processing ? "Processing..." : "Withdraw"}
+                        </button>
+                    </div>
                 </div>
 
                 <div className="panel">
@@ -210,20 +262,22 @@ export function WalletPage() {
                                 className="transaction-row"
                             >
                                 <span>
-                                    {transaction.direction === "SEND"
-                                        ? "Sent"
-                                        : "Received"}
+                                    {transaction.type === "WITHDRAWAL"
+                                        ? "Withdrawal"
+                                        : transaction.direction === "SEND"
+                                          ? "Sent"
+                                          : "Received"}
                                 </span>
                                 <strong
                                     className={
-                                        transaction.direction === "SEND"
-                                            ? "amount-negative"
-                                            : "amount-positive"
+                                        transaction.direction === "RECEIVE"
+                                            ? "amount-positive"
+                                            : "amount-negative"
                                     }
                                 >
-                                    {transaction.direction === "SEND"
-                                        ? "-"
-                                        : "+"}
+                                    {transaction.direction === "RECEIVE"
+                                        ? "+"
+                                        : "-"}
                                     INR {Math.abs(Number(transaction.amount))}
                                 </strong>
                             </div>

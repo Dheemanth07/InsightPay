@@ -25,3 +25,7 @@ export const addMoney = (amount: number) => {
 export const sendMoney = (receiverId: number, amount: number) => {
     return apiClient.post("/wallet/send", { receiverId, amount });
 };
+
+export const withdrawMoney = (amount: number) => {
+    return apiClient.post("/wallet/withdraw", { amount });
+};

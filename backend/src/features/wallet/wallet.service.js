@@ -2,6 +2,7 @@ import {
     addMoneyTransaction,
     findWalletTransactions,
     sendMoneyTransaction,
+    withdrawMoneyTransaction,
 } from "./wallet.repository.js";
 
 export const addMoneyService = (userId, amount) => {
@@ -10,6 +11,10 @@ export const addMoneyService = (userId, amount) => {
 
 export const sendMoneyService = (senderId, receiverId, amount) => {
     return sendMoneyTransaction(senderId, receiverId, amount);
+};
+
+export const withdrawMoneyService = (userId, amount) => {
+    return withdrawMoneyTransaction(userId, amount);
 };
 
 export const getTransactionHistoryService = async (
@@ -33,14 +38,22 @@ export const getTransactionHistoryService = async (
 
     let formatted = transactions.map((transaction) => {
         const isSender = transaction.fromUserId === userId;
+        const direction =
+            transaction.type === "WITHDRAWAL"
+                ? "WITHDRAWAL"
+                : isSender
+                    ? "SEND"
+                    : "RECEIVE";
 
         return {
             id: transaction.id,
             amount: transaction.amount,
-            direction: isSender ? "SEND" : "RECEIVE",
-            signedAmount: isSender
-                ? -Number(transaction.amount)
-                : Number(transaction.amount),
+            type: transaction.type,
+            direction,
+            signedAmount:
+                direction === "RECEIVE"
+                    ? Number(transaction.amount)
+                    : -Number(transaction.amount),
             status: transaction.status,
             createdAt: transaction.createdAt,
             fromUserId: transaction.fromUserId,
@@ -48,7 +61,7 @@ export const getTransactionHistoryService = async (
         };
     });
 
-    if (type === "SEND" || type === "RECEIVE") {
+    if (type === "SEND" || type === "RECEIVE" || type === "WITHDRAWAL") {
         formatted = formatted.filter(
             (transaction) => transaction.direction === type,
         );

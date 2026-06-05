@@ -6,6 +6,7 @@ export type Transaction = {
     createdAt: string;
     fromUserId: number | null;
     toUserId: number | null;
+    categoryId: string | null;
     fromUser?: {
         id: number;
         name: string;
@@ -15,6 +16,7 @@ export type Transaction = {
         name: string;
     } | null;
     category?: {
+        id: string;
         name: string;
         type: string;
     } | null;

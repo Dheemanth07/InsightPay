@@ -61,7 +61,7 @@ export function CategoriesPage() {
         }
     };
 
-    const handleDeleteCategory = async (categoryId: number) => {
+    const handleDeleteCategory = async (categoryId: string) => {
         if (!confirm("Are you sure you want to delete this category?")) {
             return;
         }
@@ -131,18 +131,15 @@ export function CategoriesPage() {
                 {categories.length === 0 ? (
                     <p className="empty-state">No categories yet.</p>
                 ) : (
-                    <div className="transaction-list">
+                    <div className="category-grid">
                         {categories.map((category) => (
                             <div
                                 key={category.id}
-                                className="transaction-row"
+                                className="category-card"
                             >
                                 <div>
-                                    <p>{category.name}</p>
-                                    <p className="muted-panel">
-                                        {category.type}
-                                        {category.isSystem &&
-                                            " (System)"}
+                                    <p className="category-card-title">
+                                        {category.name}
                                     </p>
                                 </div>
                                 {!category.isSystem && (

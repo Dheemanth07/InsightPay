@@ -46,12 +46,16 @@ export const createTransactionForUser = async (
     });
 };
 
-export const updateTransactionCategoryForUser = (transactionId, categoryId) => {
+export const updateTransactionCategoryForUser = (
+    transactionId,
+    categoryId,
+    userId,
+) => {
     if (!categoryId) {
         const error = new Error("categoryId is required");
         error.statusCode = 400;
         throw error;
     }
 
-    return updateTransactionCategory(transactionId, categoryId);
+    return updateTransactionCategory(transactionId, categoryId, userId);
 };

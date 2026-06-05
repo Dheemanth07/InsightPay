@@ -11,6 +11,7 @@ export const findCardsByUserId = (userId) => {
             id: true,
             last4: true,
             brand: true,
+            issuerBank: true,
             expiryMonth: true,
             expiryYear: true,
             createdAt: true,

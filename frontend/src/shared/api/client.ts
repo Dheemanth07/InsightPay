@@ -1,7 +1,18 @@
 import axios from "axios";
 
+const DEFAULT_API_HOST = (() => {
+    if (
+        typeof window !== "undefined" &&
+        window.location &&
+        window.location.hostname
+    ) {
+        return `http://${window.location.hostname}:5000`;
+    }
+    return "http://localhost:5000";
+})();
+
 export const apiClient = axios.create({
-    baseURL: "http://localhost:5000",
+    baseURL: DEFAULT_API_HOST,
     headers: {
         "Content-Type": "application/json",
     },

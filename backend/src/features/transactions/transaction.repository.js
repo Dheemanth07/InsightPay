@@ -2,10 +2,21 @@ import prisma from "../../prisma.js";
 
 export const findTransactionsForUser = (userId) => {
     return prisma.transaction.findMany({
-        where: { fromUserId: userId },
+        where: {
+            OR: [
+                { fromUserId: userId },
+                { toUserId: userId },
+            ],
+        },
         include: {
             category: {
                 select: { name: true, type: true },
+            },
+            fromUser: {
+                select: { id: true, name: true },
+            },
+            toUser: {
+                select: { id: true, name: true },
             },
         },
         orderBy: { createdAt: "desc" },

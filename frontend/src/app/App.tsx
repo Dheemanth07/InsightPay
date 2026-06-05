@@ -8,61 +8,29 @@ import { TransactionsPage } from "../features/transactions/pages/TransactionsPag
 import { CategoriesPage } from "../features/categories/pages/CategoriesPage";
 import { CardsPage } from "../features/cards/pages/CardsPage";
 import { QRPage } from "../features/qr/pages/QRPage";
+import { TopNavLayout } from "../shared/components/TopNavLayout";
 
 export function App() {
     return (
         <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route
-                path="/dashboard"
+                path="/*"
                 element={
                     <ProtectedRoute>
-                        <DashboardPage />
+                        <TopNavLayout />
                     </ProtectedRoute>
                 }
-            />
-            <Route
-                path="/wallet"
-                element={
-                    <ProtectedRoute>
-                        <WalletPage />
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="/transactions"
-                element={
-                    <ProtectedRoute>
-                        <TransactionsPage />
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="/categories"
-                element={
-                    <ProtectedRoute>
-                        <CategoriesPage />
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="/cards"
-                element={
-                    <ProtectedRoute>
-                        <CardsPage />
-                    </ProtectedRoute>
-                }
-            />
-            <Route
-                path="/qr"
-                element={
-                    <ProtectedRoute>
-                        <QRPage />
-                    </ProtectedRoute>
-                }
-            />
+            >
+                <Route path="" element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="wallet" element={<WalletPage />} />
+                <Route path="transactions" element={<TransactionsPage />} />
+                <Route path="categories" element={<CategoriesPage />} />
+                <Route path="cards" element={<CardsPage />} />
+                <Route path="qr" element={<QRPage />} />
+            </Route>
         </Routes>
     );
 }

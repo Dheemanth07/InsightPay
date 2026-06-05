@@ -3,18 +3,14 @@ import { getApiErrorMessage } from "../../../shared/api/errors";
 import {
     addMoney,
     getWalletOwner,
-    getWalletTransactions,
     sendMoney,
     withdrawMoney,
 } from "../wallet.api";
-import type { WalletTransaction } from "../wallet.types";
 
 export function WalletPage() {
     const [balance, setBalance] = useState<number>(0);
-    const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [nextCursor, setNextCursor] = useState<number | null>(null);
     const [addAmount, setAddAmount] = useState("");
     const [receiverId, setReceiverId] = useState("");
     const [sendAmount, setSendAmount] = useState("");
@@ -25,16 +21,8 @@ export function WalletPage() {
     const fetchWalletData = useCallback(async () => {
         try {
             setLoading(true);
-            const [userResponse, transactionResponse] = await Promise.all([
-                getWalletOwner(),
-                getWalletTransactions(),
-            ]);
-
+            const userResponse = await getWalletOwner();
             setBalance(Number(userResponse.data.balance || 0));
-            setTransactions(
-                transactionResponse.data.result?.transactions || [],
-            );
-            setNextCursor(transactionResponse.data.result?.nextCursor || null);
         } catch (err) {
             setError(
                 getApiErrorMessage(
@@ -122,25 +110,6 @@ export function WalletPage() {
             await fetchWalletData();
         } finally {
             setProcessing(false);
-        }
-    };
-
-    const loadMore = async () => {
-        if (!nextCursor) return;
-
-        try {
-            const response = await getWalletTransactions(nextCursor);
-            const nextTransactions = response.data.result?.transactions || [];
-
-            setTransactions((currentTransactions) => [
-                ...currentTransactions,
-                ...nextTransactions,
-            ]);
-            setNextCursor(response.data.result?.nextCursor || null);
-        } catch (err) {
-            setActionError(
-                getApiErrorMessage(err, "Failed to load more transactions"),
-            );
         }
     };
 
@@ -247,49 +216,6 @@ export function WalletPage() {
                         {processing ? "Processing..." : "Send"}
                     </button>
                 </div>
-            </section>
-
-            <section className="panel">
-                <h2>Recent Transactions</h2>
-
-                {transactions.length === 0 ? (
-                    <p className="empty-state">No transactions yet.</p>
-                ) : (
-                    <div className="transaction-list">
-                        {transactions.map((transaction) => (
-                            <div
-                                key={transaction.id}
-                                className="transaction-row"
-                            >
-                                <span>
-                                    {transaction.type === "WITHDRAWAL"
-                                        ? "Withdrawal"
-                                        : transaction.direction === "SEND"
-                                          ? "Sent"
-                                          : "Received"}
-                                </span>
-                                <strong
-                                    className={
-                                        transaction.direction === "RECEIVE"
-                                            ? "amount-positive"
-                                            : "amount-negative"
-                                    }
-                                >
-                                    {transaction.direction === "RECEIVE"
-                                        ? "+"
-                                        : "-"}
-                                    INR {Math.abs(Number(transaction.amount))}
-                                </strong>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {nextCursor && (
-                    <button type="button" onClick={loadMore}>
-                        Load More
-                    </button>
-                )}
             </section>
         </main>
     );

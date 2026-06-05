@@ -8,8 +8,9 @@ export function CardsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [cardNumber, setCardNumber] = useState("");
-    const [cardholderName, setCardholderName] = useState("");
-    const [expiryDate, setExpiryDate] = useState("");
+    const [brand, setBrand] = useState("");
+    const [expiryMonth, setExpiryMonth] = useState("");
+    const [expiryYear, setExpiryYear] = useState("");
     const [processing, setProcessing] = useState(false);
 
     const fetchCards = useCallback(async () => {
@@ -34,8 +35,27 @@ export function CardsPage() {
     }, [fetchCards]);
 
     const handleAddCard = async () => {
-        if (!cardNumber.trim() || !cardholderName.trim() || !expiryDate.trim()) {
+        if (
+            !cardNumber.trim() ||
+            !brand.trim() ||
+            !expiryMonth.trim() ||
+            !expiryYear.trim()
+        ) {
             setError("All card details are required");
+            return;
+        }
+
+        const expiryMonthNumber = Number(expiryMonth);
+        const expiryYearNumber = Number(expiryYear);
+
+        if (
+            Number.isNaN(expiryMonthNumber) ||
+            Number.isNaN(expiryYearNumber) ||
+            expiryMonthNumber < 1 ||
+            expiryMonthNumber > 12 ||
+            expiryYearNumber < 2024
+        ) {
+            setError("Enter a valid expiry month and year");
             return;
         }
 
@@ -45,12 +65,14 @@ export function CardsPage() {
         try {
             await addCard({
                 cardNumber,
-                cardholderName,
-                expiryDate,
+                brand,
+                expiryMonth: expiryMonthNumber,
+                expiryYear: expiryYearNumber,
             });
             setCardNumber("");
-            setCardholderName("");
-            setExpiryDate("");
+            setBrand("");
+            setExpiryMonth("");
+            setExpiryYear("");
             await fetchCards();
         } catch (err) {
             setError(getApiErrorMessage(err, "Failed to add card"));
@@ -59,7 +81,7 @@ export function CardsPage() {
         }
     };
 
-    const handleDeleteCard = async (cardId: number) => {
+    const handleDeleteCard = async (cardId: string) => {
         if (!confirm("Are you sure you want to delete this card?")) {
             return;
         }
@@ -104,23 +126,37 @@ export function CardsPage() {
                     />
                 </label>
                 <label>
-                    Cardholder Name
+                    Card Brand
                     <input
                         type="text"
-                        value={cardholderName}
-                        onChange={(e) => setCardholderName(e.target.value)}
-                        placeholder="John Doe"
+                        value={brand}
+                        onChange={(e) => setBrand(e.target.value)}
+                        placeholder="Visa, Mastercard, etc."
                     />
                 </label>
-                <label>
-                    Expiry Date
-                    <input
-                        type="text"
-                        value={expiryDate}
-                        onChange={(e) => setExpiryDate(e.target.value)}
-                        placeholder="MM/YY"
-                    />
-                </label>
+                <div className="wallet-actions-row">
+                    <label>
+                        Expiry Month
+                        <input
+                            type="number"
+                            min="1"
+                            max="12"
+                            value={expiryMonth}
+                            onChange={(e) => setExpiryMonth(e.target.value)}
+                            placeholder="MM"
+                        />
+                    </label>
+                    <label>
+                        Expiry Year
+                        <input
+                            type="number"
+                            min="2024"
+                            value={expiryYear}
+                            onChange={(e) => setExpiryYear(e.target.value)}
+                            placeholder="YYYY"
+                        />
+                    </label>
+                </div>
                 <button
                     type="button"
                     onClick={handleAddCard}
@@ -137,23 +173,17 @@ export function CardsPage() {
                 ) : (
                     <div className="transaction-list">
                         {cards.map((card) => (
-                            <div
-                                key={card.id}
-                                className="transaction-row"
-                            >
+                            <div key={card.id} className="transaction-row">
                                 <div>
-                                    <p>{card.cardholderName}</p>
+                                    <p>{card.brand}</p>
                                     <p className="muted-panel">
-                                        ••••{" "}
-                                        {card.cardNumber.slice(-4)}{" "}
-                                        | {card.expiryDate}
+                                        •••• {card.last4} | {card.expiryMonth}/
+                                        {card.expiryYear}
                                     </p>
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={() =>
-                                        handleDeleteCard(card.id)
-                                    }
+                                    onClick={() => handleDeleteCard(card.id)}
                                     disabled={processing}
                                 >
                                     Delete

@@ -1,11 +1,11 @@
 import { apiClient } from "../../shared/api/client";
 
 export type Card = {
-    id: number;
-    cardNumber: string;
-    cardholderName: string;
-    expiryDate: string;
-    isDefault: boolean;
+    id: string;
+    last4: string;
+    brand: string;
+    expiryMonth: number;
+    expiryYear: number;
     createdAt: string;
 };
 
@@ -15,12 +15,13 @@ export const getCards = () => {
 
 export const addCard = (data: {
     cardNumber: string;
-    cardholderName: string;
-    expiryDate: string;
+    brand: string;
+    expiryMonth: number;
+    expiryYear: number;
 }) => {
     return apiClient.post("/cards/add", data);
 };
 
-export const deleteCard = (cardId: number) => {
+export const deleteCard = (cardId: string) => {
     return apiClient.delete(`/cards/${cardId}`);
 };

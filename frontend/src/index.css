@@ -84,6 +84,35 @@ input {
     background: #ffffff;
     color: #172026;
     padding: 0.75rem;
+    font-size: 1rem;
+    font-weight: 500;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+input:focus {
+    outline: 2px solid rgba(13, 107, 95, 0.12);
+}
+
+select {
+    width: 100%;
+    border: 1px solid #c7d2d8;
+    border-radius: 8px;
+    background-color: #ffffff;
+    color: #172026;
+    padding: 0.75rem 2.5rem 0.75rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 500;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%230d6b5f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: calc(100% - 0.9rem) center;
+    background-size: 1rem;
+}
+
+select:focus {
+    outline: 2px solid rgba(13, 107, 95, 0.12);
 }
 
 label {
@@ -158,26 +187,6 @@ label {
 
 .panel button {
     margin-top: 0.75rem;
-}
-
-/* Make select elements inside panels visually match inputs */
-.panel select {
-    width: 100%;
-    padding: 0.75rem 2.5rem 0.75rem 0.75rem;
-    border: 1px solid #c7d2d8;
-    border-radius: 8px;
-    background-color: #ffffff;
-    color: #172026;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%230d6b5f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: calc(100% - 0.9rem) center;
-    background-size: 1rem;
-}
-
-.panel select:focus {
-    outline: 2px solid rgba(13, 107, 95, 0.12);
 }
 
 .muted-panel {
@@ -392,6 +401,7 @@ label {
 
 .search-container input {
     width: 100%;
+    margin-bottom: 0;
     padding: 0.85rem 1rem 0.85rem 2.5rem;
     border: 1px solid #d1d5db;
     border-radius: 999px;
@@ -403,9 +413,19 @@ label {
     position: absolute;
     left: 1rem;
     top: 50%;
+    width: 1.15rem;
+    height: 1.15rem;
     transform: translateY(-50%);
     pointer-events: none;
-    color: #6b7280;
+    fill: none;
+    stroke: #6b7280;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+}
+
+.transaction-toolbar .filter-button {
+    margin: 0;
 }
 
 .filter-button {
@@ -472,6 +492,52 @@ label {
     justify-content: flex-end;
     gap: 0.75rem;
     flex-wrap: wrap;
+}
+
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.category-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 132px;
+    border: 1px solid #dbe2e8;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 1rem;
+}
+
+.category-card-title {
+    margin: 0 0 0.75rem;
+    color: #0f172a;
+    font-weight: 800;
+}
+
+.category-card button {
+    width: fit-content;
+    margin-top: 0;
+}
+
+.payment-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.payment-card-item {
+    display: grid;
+    justify-items: start;
+    gap: 0.75rem;
+}
+
+.payment-card-item .secondary-button {
+    margin: 0;
 }
 
 .month-group {
@@ -555,6 +621,19 @@ label {
     font-size: 0.95rem;
 }
 
+.category-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.5rem;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    background: #f2f2f2;
+    color: #1f2933;
+    font-weight: 700;
+    line-height: 1;
+}
+
 .transaction-counterparty strong {
     color: #0f172a;
     font-weight: 700;
@@ -562,6 +641,19 @@ label {
 
 .transaction-date {
     margin-top: 0.35rem;
+}
+
+.category-select-label {
+    width: min(100%, 240px);
+    gap: 0.35rem;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.panel .transaction-category-select {
+    margin: 0;
+    padding: 0.55rem 2.25rem 0.55rem 0.75rem;
+    font-size: 0.9rem;
 }
 
 .amount-positive {
@@ -585,7 +677,17 @@ label {
         flex-direction: column;
     }
 
+    .category-grid {
+        grid-template-columns: 1fr;
+    }
+
     .wallet-actions {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 721px) and (max-width: 980px) {
+    .category-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }

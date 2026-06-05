@@ -33,6 +33,7 @@ export const updateTransaction = async (req, res) => {
         const transaction = await updateTransactionCategoryForUser(
             req.params.id,
             req.body.categoryId,
+            req.user.id,
         );
 
         return res.status(200).json(transaction);

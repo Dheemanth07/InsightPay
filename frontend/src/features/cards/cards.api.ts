@@ -1,13 +1,5 @@
 import { apiClient } from "../../shared/api/client";
-
-export type Card = {
-    id: string;
-    last4: string;
-    brand: string;
-    expiryMonth: number;
-    expiryYear: number;
-    createdAt: string;
-};
+import type { Card } from "./cards.types";
 
 export const getCards = () => {
     return apiClient.get<{ cards: Card[] }>("/cards");
@@ -16,6 +8,7 @@ export const getCards = () => {
 export const addCard = (data: {
     cardNumber: string;
     brand: string;
+    issuerBank: string;
     expiryMonth: number;
     expiryYear: number;
 }) => {

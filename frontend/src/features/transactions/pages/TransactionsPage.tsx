@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { getCategories } from "../../categories/categories.api";
+import type { Category } from "../../categories/categories.types";
 import { getApiErrorMessage } from "../../../shared/api/errors";
-import { getTransactions } from "../transactions.api";
+import {
+    getTransactions,
+    updateTransactionCategory,
+} from "../transactions.api";
 import type { Transaction } from "../transactions.types";
 
 const MONTH_LABEL_OPTIONS: Intl.DateTimeFormatOptions = {
@@ -98,8 +103,13 @@ const filterOptionsFromTransactions = (transactions: Transaction[]) => {
 
 export function TransactionsPage() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [categoryError, setCategoryError] = useState("");
+    const [updatingCategoryId, setUpdatingCategoryId] = useState<number | null>(
+        null,
+    );
     const [search, setSearch] = useState("");
     const [filterOpen, setFilterOpen] = useState(false);
     const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
@@ -111,12 +121,16 @@ export function TransactionsPage() {
         const fetchTransactions = async () => {
             try {
                 setLoading(true);
-                const response = await getTransactions();
-                const normalized = (response.data || []).map((transaction) => ({
-                    ...transaction,
-                    amount: Number(transaction.amount) || 0,
-                }));
+                const [transactionResponse, categoryResponse] =
+                    await Promise.all([getTransactions(), getCategories()]);
+                const normalized = (transactionResponse.data || []).map(
+                    (transaction) => ({
+                        ...transaction,
+                        amount: Number(transaction.amount) || 0,
+                    }),
+                );
                 setTransactions(normalized);
+                setCategories(categoryResponse.data || []);
             } catch (err) {
                 setError(
                     getApiErrorMessage(
@@ -195,6 +209,45 @@ export function TransactionsPage() {
         setSelectedTypes([]);
     };
 
+    const handleCategoryChange = async (
+        transaction: Transaction,
+        categoryId: string,
+    ) => {
+        const selectedCategory = categories.find(
+            (category) => category.id === categoryId,
+        );
+
+        if (!selectedCategory) return;
+
+        setUpdatingCategoryId(transaction.id);
+        setCategoryError("");
+
+        try {
+            await updateTransactionCategory(transaction.id, categoryId);
+            setTransactions((currentTransactions) =>
+                currentTransactions.map((currentTransaction) =>
+                    currentTransaction.id === transaction.id
+                        ? {
+                              ...currentTransaction,
+                              categoryId,
+                              category: {
+                                  id: selectedCategory.id,
+                                  name: selectedCategory.name,
+                                  type: selectedCategory.type,
+                              },
+                          }
+                        : currentTransaction,
+                ),
+            );
+        } catch (err) {
+            setCategoryError(
+                getApiErrorMessage(err, "Failed to update category"),
+            );
+        } finally {
+            setUpdatingCategoryId(null);
+        }
+    };
+
     if (loading) {
         return <p className="page-status">Loading transactions...</p>;
     }
@@ -214,7 +267,15 @@ export function TransactionsPage() {
 
             <section className="panel transaction-toolbar">
                 <div className="search-container">
-                    <div className="search-icon"></div>
+                    <svg
+                        className="search-icon"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        focusable="false"
+                    >
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="m16.5 16.5 4.5 4.5" />
+                    </svg>
                     <input
                         type="text"
                         placeholder="Search transactions"
@@ -230,6 +291,8 @@ export function TransactionsPage() {
                     Filter
                 </button>
             </section>
+
+            {categoryError && <p className="error-text">{categoryError}</p>}
 
             {filterOpen && (
                 <div
@@ -463,16 +526,57 @@ export function TransactionsPage() {
                                                         </strong>
                                                     </span>
                                                 )}
-                                                {transaction.category?.name ? (
-                                                    <>
-                                                        {' '}
-                                                        • {transaction.category.name}
-                                                    </>
-                                                ) : null}
+                                                <span className="category-pill">
+                                                    {transaction.category?.name ||
+                                                        "Uncategorized"}
+                                                </span>
                                             </p>
                                             <p className="transaction-date">
                                                 {formatTransactionDate(transaction)}
                                             </p>
+                                            {transaction.status === "SUCCESS" && (
+                                                <label className="category-select-label">
+                                                    Category
+                                                    <select
+                                                        className="transaction-category-select"
+                                                        value={
+                                                            transaction.categoryId ||
+                                                            transaction.category?.id ||
+                                                            ""
+                                                        }
+                                                        onChange={(event) =>
+                                                            handleCategoryChange(
+                                                                transaction,
+                                                                event.target.value,
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            updatingCategoryId ===
+                                                            transaction.id
+                                                        }
+                                                    >
+                                                        <option value="" disabled>
+                                                            Choose category
+                                                        </option>
+                                                        {categories.map(
+                                                            (category) => (
+                                                                <option
+                                                                    key={
+                                                                        category.id
+                                                                    }
+                                                                    value={
+                                                                        category.id
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        category.name
+                                                                    }
+                                                                </option>
+                                                            ),
+                                                        )}
+                                                    </select>
+                                                </label>
+                                            )}
                                         </div>
                                         <strong
                                             className={

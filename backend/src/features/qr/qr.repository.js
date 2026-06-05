@@ -64,3 +64,23 @@ export const confirmQrPaymentTransaction = (payerId, reference) => {
         return transaction;
     });
 };
+
+export const markQrTransactionAsProcessed = (reference, fromUserId) => {
+    return prisma.transaction.update({
+        where: { reference },
+        data: { status: "SUCCESS", fromUserId },
+    });
+};
+
+export const getQrTransactionStatus = (reference) => {
+    return prisma.transaction.findUnique({
+        where: { reference },
+        select: {
+            reference: true,
+            status: true,
+            amount: true,
+            fromUserId: true,
+            toUserId: true,
+        },
+    });
+};

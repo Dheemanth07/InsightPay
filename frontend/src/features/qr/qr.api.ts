@@ -2,6 +2,7 @@ import { apiClient } from "../../shared/api/client";
 
 export type QRGenerated = {
     qrData: string;
+    qrImage: string;
     reference: string;
     amount: number;
     expiresAt: string;
@@ -31,4 +32,12 @@ export const validateQR = (qrData: string) => {
 
 export const confirmQRPayment = (qrData: string) => {
     return apiClient.post<QRPaymentResult>("/qr/confirm", { qrData });
+};
+
+export const markQrUsed = (reference: string) => {
+    return apiClient.post("/qr/mark-used", { reference });
+};
+
+export const getQrStatus = (reference: string) => {
+    return apiClient.get(`/qr/status/${reference}`);
 };

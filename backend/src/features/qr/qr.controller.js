@@ -3,6 +3,7 @@ import {
     generateQrForPayment,
     validateQrPayment,
 } from "./qr.service.js";
+import { markQrTransactionAsProcessed, getQrTransactionStatus } from "./qr.repository.js";
 
 export const generateQR = async (req, res) => {
     try {
@@ -47,5 +48,39 @@ export const confirmQRPayment = async (req, res) => {
         return res
             .status(err.statusCode || 500)
             .json({ message: err.message || "Payment failed" });
+    }
+};
+
+export const markUsed = async (req, res) => {
+    try {
+        const { reference } = req.body;
+
+        if (!reference) {
+            return res.status(400).json({ message: "Reference required" });
+        }
+
+        const result = await markQrTransactionAsProcessed(reference, req.user.id);
+
+        return res.status(200).json({ message: "Marked used", result });
+    } catch (err) {
+        console.error("Error marking QR used:", err);
+        return res.status(err.statusCode || 500).json({ message: err.message || "Internal server error" });
+    }
+};
+
+export const getStatus = async (req, res) => {
+    try {
+        const { reference } = req.params;
+
+        if (!reference) {
+            return res.status(400).json({ message: "Reference required" });
+        }
+
+        const status = await getQrTransactionStatus(reference);
+
+        return res.status(200).json(status);
+    } catch (err) {
+        console.error("Error fetching QR status:", err);
+        return res.status(500).json({ message: "Internal server error" });
     }
 };

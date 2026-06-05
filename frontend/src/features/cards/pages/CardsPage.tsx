@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getApiErrorMessage } from "../../../shared/api/errors";
 import { addCard, deleteCard, getCards } from "../cards.api";
+import { CreditCard } from "../components/CreditCard";
 import type { Card } from "../cards.types";
 
 export function CardsPage() {
@@ -9,6 +10,7 @@ export function CardsPage() {
     const [error, setError] = useState("");
     const [cardNumber, setCardNumber] = useState("");
     const [brand, setBrand] = useState("");
+    const [issuerBank, setIssuerBank] = useState("");
     const [expiryMonth, setExpiryMonth] = useState("");
     const [expiryYear, setExpiryYear] = useState("");
     const [processing, setProcessing] = useState(false);
@@ -38,6 +40,7 @@ export function CardsPage() {
         if (
             !cardNumber.trim() ||
             !brand.trim() ||
+            !issuerBank.trim() ||
             !expiryMonth.trim() ||
             !expiryYear.trim()
         ) {
@@ -66,11 +69,13 @@ export function CardsPage() {
             await addCard({
                 cardNumber,
                 brand,
+                issuerBank,
                 expiryMonth: expiryMonthNumber,
                 expiryYear: expiryYearNumber,
             });
             setCardNumber("");
             setBrand("");
+            setIssuerBank("");
             setExpiryMonth("");
             setExpiryYear("");
             await fetchCards();
@@ -120,20 +125,41 @@ export function CardsPage() {
                     Card Number
                     <input
                         type="text"
+                        inputMode="numeric"
+                        autoComplete="cc-number"
                         value={cardNumber}
                         onChange={(e) => setCardNumber(e.target.value)}
                         placeholder="1234 5678 9012 3456"
                     />
                 </label>
-                <label>
-                    Card Brand
-                    <input
-                        type="text"
-                        value={brand}
-                        onChange={(e) => setBrand(e.target.value)}
-                        placeholder="Visa, Mastercard, etc."
-                    />
-                </label>
+                <div className="wallet-actions-row">
+                    <label>
+                        Card Brand
+                        <select
+                            value={brand}
+                            onChange={(e) => setBrand(e.target.value)}
+                        >
+                            <option value="">Select brand</option>
+                            <option value="Visa">Visa</option>
+                            <option value="Mastercard">Mastercard</option>
+                            <option value="RuPay">RuPay</option>
+                            <option value="American Express">American Express</option>
+                        </select>
+                    </label>
+                    <label>
+                        Issuer Bank
+                        <select
+                            value={issuerBank}
+                            onChange={(e) => setIssuerBank(e.target.value)}
+                        >
+                            <option value="">Select bank</option>
+                            <option value="HDFC">HDFC</option>
+                            <option value="SBI">SBI</option>
+                            <option value="ICICI">ICICI</option>
+                            <option value="AXIS">AXIS</option>
+                        </select>
+                    </label>
+                </div>
                 <div className="wallet-actions-row">
                     <label>
                         Expiry Month
@@ -141,6 +167,7 @@ export function CardsPage() {
                             type="number"
                             min="1"
                             max="12"
+                            autoComplete="cc-exp-month"
                             value={expiryMonth}
                             onChange={(e) => setExpiryMonth(e.target.value)}
                             placeholder="MM"
@@ -151,6 +178,7 @@ export function CardsPage() {
                         <input
                             type="number"
                             min="2024"
+                            autoComplete="cc-exp-year"
                             value={expiryYear}
                             onChange={(e) => setExpiryYear(e.target.value)}
                             placeholder="YYYY"
@@ -171,18 +199,19 @@ export function CardsPage() {
                 {cards.length === 0 ? (
                     <p className="empty-state">No cards added yet.</p>
                 ) : (
-                    <div className="transaction-list">
+                    <div className="payment-card-grid">
                         {cards.map((card) => (
-                            <div key={card.id} className="transaction-row">
-                                <div>
-                                    <p>{card.brand}</p>
-                                    <p className="muted-panel">
-                                        •••• {card.last4} | {card.expiryMonth}/
-                                        {card.expiryYear}
-                                    </p>
-                                </div>
+                            <div key={card.id} className="payment-card-item">
+                                <CreditCard
+                                    brand={card.brand}
+                                    issuerBank={card.issuerBank}
+                                    lastFour={card.last4}
+                                    expiryMonth={card.expiryMonth}
+                                    expiryYear={card.expiryYear}
+                                />
                                 <button
                                     type="button"
+                                    className="secondary-button"
                                     onClick={() => handleDeleteCard(card.id)}
                                     disabled={processing}
                                 >

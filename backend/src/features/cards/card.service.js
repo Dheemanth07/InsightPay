@@ -16,6 +16,18 @@ export const addCardForUser = async (
         throw error;
     }
 
+    if (!brand) {
+        const error = new Error("Card brand is required");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (!expiryMonth || !expiryYear) {
+        const error = new Error("Card expiry month and year are required");
+        error.statusCode = 400;
+        throw error;
+    }
+
     return createCard({
         userId,
         cardToken: generateCardToken(),

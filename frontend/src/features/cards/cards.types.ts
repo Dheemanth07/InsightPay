@@ -1,8 +1,8 @@
 export type Card = {
-    id: number;
-    cardNumber: string;
-    cardholderName: string;
-    expiryDate: string;
-    isDefault: boolean;
+    id: string;
+    last4: string;
+    brand: string;
+    expiryMonth: number;
+    expiryYear: number;
     createdAt: string;
 };

@@ -8,7 +8,7 @@ import {
 
 export const addCardForUser = async (
     userId,
-    { cardNumber, expiryMonth, expiryYear, brand },
+    { cardNumber, expiryMonth, expiryYear, brand, issuerBank },
 ) => {
     if (!cardNumber || String(cardNumber).length < 4) {
         const error = new Error("Valid card number is required");
@@ -18,6 +18,12 @@ export const addCardForUser = async (
 
     if (!brand) {
         const error = new Error("Card brand is required");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (!issuerBank) {
+        const error = new Error("Issuer bank is required");
         error.statusCode = 400;
         throw error;
     }
@@ -33,6 +39,7 @@ export const addCardForUser = async (
         cardToken: generateCardToken(),
         last4: String(cardNumber).slice(-4),
         brand,
+        issuerBank,
         expiryMonth,
         expiryYear,
     });

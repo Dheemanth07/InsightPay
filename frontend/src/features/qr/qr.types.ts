@@ -1,5 +1,6 @@
 export type QRGenerated = {
     qrData: string;
+    qrImage: string;
     reference: string;
     amount: number;
     expiresAt: string;

@@ -64,7 +64,7 @@ export const generateQrForPayment = async (receiverId, amount) => {
     const qrData = JSON.stringify({ payload, signature: signQR(payload) });
     const qrImage = await QRCode.toDataURL(qrData);
 
-    return { qrImage, reference, expiresAt };
+    return { qrData, qrImage, reference, expiresAt };
 };
 
 export const validateQrPayment = async (qrData) => {
@@ -86,7 +86,7 @@ export const validateQrPayment = async (qrData) => {
     return {
         reference: transaction.reference,
         amount: transaction.amount,
-        receiver: transaction.toUser,
+        receiverId: transaction.toUserId,
         expiresAt: transaction.qrExpiresAt,
     };
 };

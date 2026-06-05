@@ -68,6 +68,7 @@ model Card {
   cardToken   String   @unique
   last4       String
   brand       String
+  issuerBank  String   @default("HDFC")
   expiryMonth Int
   expiryYear  Int
   createdAt   DateTime @default(now())

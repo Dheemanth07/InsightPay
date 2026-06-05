@@ -10,7 +10,7 @@ export const findTransactionsForUser = (userId) => {
         },
         include: {
             category: {
-                select: { name: true, type: true },
+                select: { id: true, name: true, type: true },
             },
             fromUser: {
                 select: { id: true, name: true },
@@ -60,9 +60,53 @@ export const createTransactionWithBalanceUpdate = (
     });
 };
 
-export const updateTransactionCategory = (transactionId, categoryId) => {
-    return prisma.transaction.update({
-        where: { id: Number(transactionId) },
-        data: { category: { connect: { id: categoryId } } },
+export const updateTransactionCategory = (transactionId, categoryId, userId) => {
+    return prisma.$transaction(async (tx) => {
+        const category = await tx.category.findFirst({
+            where: { id: categoryId, userId },
+            select: { id: true },
+        });
+
+        if (!category) {
+            const error = new Error("Category not found");
+            error.statusCode = 404;
+            throw error;
+        }
+
+        const transaction = await tx.transaction.findFirst({
+            where: {
+                id: Number(transactionId),
+                OR: [{ fromUserId: userId }, { toUserId: userId }],
+            },
+            select: { id: true, status: true },
+        });
+
+        if (!transaction) {
+            const error = new Error("Transaction not found");
+            error.statusCode = 404;
+            throw error;
+        }
+
+        if (transaction.status !== "SUCCESS") {
+            const error = new Error("Only successful transactions can be categorized");
+            error.statusCode = 400;
+            throw error;
+        }
+
+        return tx.transaction.update({
+            where: { id: Number(transactionId) },
+            data: { category: { connect: { id: categoryId } } },
+            include: {
+                category: {
+                    select: { id: true, name: true, type: true },
+                },
+                fromUser: {
+                    select: { id: true, name: true },
+                },
+                toUser: {
+                    select: { id: true, name: true },
+                },
+            },
+        });
     });
 };

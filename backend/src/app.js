@@ -7,6 +7,7 @@ import cardRoutes from "./features/cards/card.routes.js";
 import qrRoutes from "./features/qr/qr.routes.js";
 import transactionRoutes from "./features/transactions/transaction.routes.js";
 import categoryRoutes from "./features/categories/category.routes.js";
+import analyticsRoutes from "./features/analytics/analytics.routes.js";
 
 const app = express();
 
@@ -31,5 +32,7 @@ app.use("/qr", qrRoutes);
 app.use("/transactions", transactionRoutes);
 
 app.use("/categories", categoryRoutes);
+
+app.use("/analytics", analyticsRoutes);
 
 export default app;

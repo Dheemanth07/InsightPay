@@ -7,6 +7,7 @@ import type { Card } from "../../cards/cards.types";
 import { getWalletTransactions } from "../../wallet/wallet.api";
 import type { WalletTransaction } from "../../wallet/wallet.types";
 import { getApiErrorMessage } from "../../../shared/api/errors";
+import { UpcomingBills } from "./UpcomingBills";
 
 const formatInr = (value: number | string) => {
     const amount = Number(value);
@@ -250,27 +251,8 @@ export function Dashboard() {
                     )}
                 </section>
 
-                {/* Chart placeholder — bottom right */}
-                <section
-                    className="dashboard-bento-chart flex flex-col rounded-[28px] border border-dashed border-[#d5dde4] bg-[#fafbfc] p-6 sm:p-7"
-                    aria-label="Spending chart placeholder"
-                >
-                    <div>
-                        <h2 className="text-lg font-extrabold tracking-tight text-[#0f1419]">
-                            Next upcoming bill
-                        </h2>
-                        <p className="mt-1 text-sm text-[#6b7280]">
-                            Spending chart will live here
-                        </p>
-                    </div>
-
-                    <div className="mt-auto flex flex-1 flex-col items-center justify-center py-8 text-center">
-                        <div className="mb-3 h-16 w-full max-w-[180px] rounded-xl bg-[#eef2f5]" />
-                        <p className="text-sm font-medium text-[#9aa3ad]">
-                            Chart area reserved
-                        </p>
-                    </div>
-                </section>
+                {/* Upcoming Bills Widget — bottom right */}
+                <UpcomingBills />
             </div>
         </div>
     );

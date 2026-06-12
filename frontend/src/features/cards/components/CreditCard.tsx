@@ -347,108 +347,6 @@ function IciciLogo() {
     );
 }
 
-function MastercardLogo() {
-    return (
-        <div
-            style={{
-                position: "relative",
-                width: 72,
-                height: 42,
-            }}
-        >
-            <span
-                style={{
-                    position: "absolute",
-                    left: 9,
-                    top: 5,
-                    width: 32,
-                    height: 32,
-                    borderRadius: "50%",
-                    background: "#ea001b",
-                    opacity: 0.95,
-                }}
-            />
-            <span
-                style={{
-                    position: "absolute",
-                    right: 9,
-                    top: 5,
-                    width: 32,
-                    height: 32,
-                    borderRadius: "50%",
-                    background: "#ff9e1b",
-                    opacity: 0.9,
-                    mixBlendMode: "screen",
-                }}
-            />
-            <span
-                style={{
-                    position: "absolute",
-                    left: 10,
-                    right: 10,
-                    bottom: 0,
-                    textAlign: "center",
-                    fontSize: 8,
-                    fontWeight: 800,
-                }}
-            >
-                mastercard
-            </span>
-        </div>
-    );
-}
-
-function RuPayLogo() {
-    return (
-        <div style={{ textAlign: "right", lineHeight: 1 }}>
-            <div style={{ fontSize: 24, fontWeight: 900, fontStyle: "italic" }}>
-                <span style={{ color: "#ffffff" }}>Ru</span>
-                <span style={{ color: "#69b5ff" }}>Pay</span>
-                <span
-                    style={{
-                        display: "inline-block",
-                        width: 0,
-                        height: 0,
-                        marginLeft: 3,
-                        borderTop: "8px solid transparent",
-                        borderBottom: "8px solid transparent",
-                        borderLeft: "10px solid #f58220",
-                    }}
-                />
-            </div>
-            <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 1.3 }}>
-                PLATINUM
-            </div>
-        </div>
-    );
-}
-
-function VisaSignature() {
-    return (
-        <div style={{ textAlign: "right", lineHeight: 0.92 }}>
-            <div style={{ fontSize: 34, fontWeight: 900, fontStyle: "italic" }}>
-                VISA
-            </div>
-            <div style={{ fontFamily: "cursive", fontSize: 13 }}>Signature</div>
-        </div>
-    );
-}
-
-function AmexLogo() {
-    return (
-        <div
-            style={{
-                padding: "4px 6px",
-                border: "1px solid rgba(255,255,255,0.82)",
-                fontSize: 20,
-                fontWeight: 900,
-                letterSpacing: 1,
-            }}
-        >
-            AMEX
-        </div>
-    );
-}
 
 function NetworkLogo({ brand, theme }: { brand: string; theme: Theme }) {
     const normalizedBrand = normalize(brand);
@@ -487,11 +385,6 @@ function NetworkLogo({ brand, theme }: { brand: string; theme: Theme }) {
     );
 }
 
-function SbiContactless() {
-    return (
-        <Contactless left={290} top={20} />
-    );
-}
 
 export function CreditCard({
     brand,

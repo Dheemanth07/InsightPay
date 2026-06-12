@@ -1,3 +1,11 @@
+@import "tailwindcss";
+
+@theme {
+    --font-sans:
+        "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system,
+        BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
 :root {
     color: #172026;
     background: #f4f7f8;
@@ -689,5 +697,43 @@ label {
 @media (min-width: 721px) and (max-width: 980px) {
     .category-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.dashboard-bento {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+    .dashboard-bento {
+        gap: 1.25rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .dashboard-bento {
+        grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+        grid-template-rows: minmax(168px, auto) minmax(280px, 1fr);
+        grid-template-areas:
+            "wallet card"
+            "transactions chart";
+    }
+
+    .dashboard-bento-wallet {
+        grid-area: wallet;
+    }
+
+    .dashboard-bento-card {
+        grid-area: card;
+    }
+
+    .dashboard-bento-transactions {
+        grid-area: transactions;
+    }
+
+    .dashboard-bento-chart {
+        grid-area: chart;
     }
 }

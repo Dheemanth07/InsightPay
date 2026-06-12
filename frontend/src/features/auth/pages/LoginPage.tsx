@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { getApiErrorMessage } from "../../../shared/api/errors";
 import { loginUser } from "../auth.api";
 import { useAuth } from "../auth.context";
@@ -32,14 +33,15 @@ export function LoginPage() {
             const response = await loginUser({ email, password });
 
             await login(response.data.token);
+            toast.success("Welcome back! You're logged in.");
             navigate("/dashboard");
         } catch (err) {
-            setError(
-                getApiErrorMessage(
-                    err,
-                    "Login failed. Please check your credentials.",
-                ),
+            const message = getApiErrorMessage(
+                err,
+                "Login failed. Please check your credentials.",
             );
+            setError(message);
+            toast.error(message);
         } finally {
             setIsSubmitting(false);
         }

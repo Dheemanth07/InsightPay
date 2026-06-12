@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { getApiErrorMessage } from "../../../shared/api/errors";
 import {
     confirmQRPayment,
@@ -116,7 +117,7 @@ export function QRPage() {
             setSendReceiverId(null);
             setStep("generate");
             setShowScanner(false);
-            alert("Payment successful!");
+            toast.success("Payment sent! That was quick.");
         } catch (err) {
             setError(getApiErrorMessage(err, "Payment failed"));
         } finally {

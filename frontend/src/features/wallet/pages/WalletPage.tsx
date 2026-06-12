@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { getApiErrorMessage } from "../../../shared/api/errors";
 import {
     addMoney,
@@ -50,9 +51,12 @@ export function WalletPage() {
             setBalance((currentBalance) => currentBalance + amount);
             await addMoney(amount);
             setAddAmount("");
+            toast.success("Added! Your balance is looking good.");
             await fetchWalletData();
         } catch (err) {
-            setActionError(getApiErrorMessage(err, "Failed to add money"));
+            const message = getApiErrorMessage(err, "Failed to add money");
+            setActionError(message);
+            toast.error("Oops! Something went wrong while adding money.");
             await fetchWalletData();
         } finally {
             setProcessing(false);
@@ -67,6 +71,7 @@ export function WalletPage() {
 
         if (amount > balance) {
             setActionError("Insufficient balance");
+            toast.error("Not enough balance for this transfer.");
             return;
         }
 
@@ -78,9 +83,12 @@ export function WalletPage() {
             await sendMoney(receiver, amount);
             setReceiverId("");
             setSendAmount("");
+            toast.success("Sent! Your money is on its way.");
             await fetchWalletData();
         } catch (err) {
-            setActionError(getApiErrorMessage(err, "Transfer failed"));
+            const message = getApiErrorMessage(err, "Transfer failed");
+            setActionError(message);
+            toast.error("Transfer failed. Please check the details.");
             await fetchWalletData();
         } finally {
             setProcessing(false);
@@ -94,6 +102,7 @@ export function WalletPage() {
 
         if (amount > balance) {
             setActionError("Insufficient balance");
+            toast.error("You don't have enough to withdraw that much.");
             return;
         }
 
@@ -104,9 +113,12 @@ export function WalletPage() {
             setBalance((currentBalance) => currentBalance - amount);
             await withdrawMoney(amount);
             setWithdrawAmount("");
+            toast.success("Done! Your withdrawal is being processed.");
             await fetchWalletData();
         } catch (err) {
-            setActionError(getApiErrorMessage(err, "Withdrawal failed"));
+            const message = getApiErrorMessage(err, "Withdrawal failed");
+            setActionError(message);
+            toast.error("Withdrawal failed. Try again in a bit?");
             await fetchWalletData();
         } finally {
             setProcessing(false);

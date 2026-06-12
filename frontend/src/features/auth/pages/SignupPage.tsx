@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { getApiErrorMessage } from "../../../shared/api/errors";
 import { registerUser } from "../auth.api";
 import { useAuth } from "../auth.context";
@@ -41,9 +42,12 @@ export function SignupPage() {
             setError("");
             setIsSubmitting(true);
             await registerUser({ name, email, password });
+            toast.success("All set! Your account is ready. Go ahead and log in.");
             navigate("/login");
         } catch (err) {
-            setError(getApiErrorMessage(err, "Signup failed"));
+            const message = getApiErrorMessage(err, "Signup failed");
+            setError(message);
+            toast.error(message);
         } finally {
             setIsSubmitting(false);
         }

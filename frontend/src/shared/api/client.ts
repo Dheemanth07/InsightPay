@@ -6,9 +6,9 @@ const DEFAULT_API_HOST = (() => {
         window.location &&
         window.location.hostname
     ) {
-        return `http://${window.location.hostname}:5000`;
+        return `http://${window.location.hostname}:8000`;
     }
-    return "http://localhost:5000";
+    return "http://localhost:8000";
 })();
 
 export const apiClient = axios.create({

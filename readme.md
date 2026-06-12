@@ -89,7 +89,7 @@ Create a `.env` file inside the `backend` directory:
 DATABASE_URL="mysql://USER:PASSWORD@localhost:3306/insightpay"
 JWT_SECRET="your_jwt_secret"
 QR_SECRET="your_qr_secret"
-PORT=5000
+PORT=8000
 ```
 
 Run Prisma migrations:
@@ -113,7 +113,7 @@ npm run dev
 The backend runs on:
 
 ```txt
-http://localhost:5000
+http://localhost:8000
 ```
 
 ## Frontend Setup

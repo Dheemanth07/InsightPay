@@ -18,14 +18,19 @@ export function CardsPage() {
     const [expiryYear, setExpiryYear] = useState("");
     const [processing, setProcessing] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [cardToDelete, setCardToDelete] = useState<string | null>(null);
+        const [cardToDelete, setCardToDelete] = useState<string | null>(null);
     const { user } = useAuth();
+
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [touchStart, setTouchStart] = useState<number | null>(null);
 
     const fetchCards = useCallback(async () => {
         try {
             setLoading(true);
             const response = await getCards();
-            setCards(response.data.cards || []);
+            const loadedCards = response.data.cards || [];
+            setCards(loadedCards);
+            setActiveIndex((prev) => Math.min(prev, Math.max(0, loadedCards.length - 1)));
         } catch (err) {
             setError(
                 getApiErrorMessage(
@@ -41,6 +46,31 @@ export function CardsPage() {
     useEffect(() => {
         fetchCards();
     }, [fetchCards]);
+
+    const handleNext = () => {
+        setActiveIndex((prev) => Math.min(prev + 1, cards.length - 1));
+    };
+
+    const handlePrev = () => {
+        setActiveIndex((prev) => Math.max(prev - 1, 0));
+    };
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (touchStart === null) return;
+        const touchEnd = e.changedTouches[0].clientX;
+        const diff = touchStart - touchEnd;
+
+        if (diff > 50) {
+            handleNext();
+        } else if (diff < -50) {
+            handlePrev();
+        }
+        setTouchStart(null);
+    };
 
     const handleAddCard = async () => {
         if (
@@ -162,16 +192,34 @@ export function CardsPage() {
                 </section>
 
                 <section className="panel space-y-4">
-                    <Skeleton width="w-28" height="h-6" rounded="rounded-md" />
-                    <div className="payment-card-grid">
-                        {Array.from({ length: 2 }).map((_, i) => (
-                            <div key={i} className="payment-card-item flex flex-col items-center gap-4">
-                                <div className="origin-center scale-[0.78] sm:scale-[0.88] lg:scale-100">
-                                    <Skeleton width="w-[400px]" height="h-[210px]" rounded="rounded-2xl" />
-                                </div>
-                                <Skeleton width="w-20" height="h-10" rounded="rounded-lg" />
+                    <div className="flex items-center justify-between">
+                        <Skeleton width="w-28" height="h-6" rounded="rounded-md" />
+                        <Skeleton width="w-20" height="h-4" rounded="rounded-md" />
+                    </div>
+                    <div className="relative h-[280px] w-full flex items-center justify-center overflow-hidden">
+                        {/* Center Card */}
+                        <div className="absolute translate-x-0 scale-100 opacity-100 z-20 flex flex-col items-center bg-transparent border-none shadow-none">
+                            <div className="origin-center scale-[0.78] sm:scale-[0.88] lg:scale-100">
+                                <Skeleton width="w-[400px]" height="h-[210px]" rounded="rounded-2xl" />
                             </div>
-                        ))}
+                        </div>
+                        {/* Left Card */}
+                        <div className="absolute -translate-x-[65%] sm:-translate-x-[50%] scale-85 opacity-50 z-10 flex flex-col items-center hidden sm:flex bg-transparent border-none shadow-none">
+                            <div className="origin-center scale-[0.78] sm:scale-[0.88] lg:scale-100">
+                                <Skeleton width="w-[400px]" height="h-[210px]" rounded="rounded-2xl" />
+                            </div>
+                        </div>
+                        {/* Right Card */}
+                        <div className="absolute translate-x-[65%] sm:translate-x-[50%] scale-85 opacity-50 z-10 flex flex-col items-center hidden sm:flex bg-transparent border-none shadow-none">
+                            <div className="origin-center scale-[0.78] sm:scale-[0.88] lg:scale-100">
+                                <Skeleton width="w-[400px]" height="h-[210px]" rounded="rounded-2xl" />
+                            </div>
+                        </div>
+                    </div>
+                    {/* Pagination dots skeleton */}
+                    <div className="flex justify-center gap-2 mt-4">
+                        <div className="w-6 h-2.5 rounded-full bg-[#0d6b5f] opacity-30" />
+                        <div className="w-4 h-2.5 rounded-full bg-white border border-[#0d6b5f] opacity-25" />
                     </div>
                 </section>
             </main>
@@ -266,31 +314,84 @@ export function CardsPage() {
                 </section>
 
                 <section className="panel">
-                    <h2>Your Cards</h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2>Your Cards</h2>
+                        {cards.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => requestDeleteCard(cards[activeIndex].id)}
+                                disabled={processing}
+                                className="text-xs font-semibold text-[#6b7280] hover:text-red-600 transition-colors bg-transparent border-none px-0 cursor-pointer"
+                            >
+                                Remove Card
+                            </button>
+                        )}
+                    </div>
                     {cards.length === 0 ? (
                         <p className="empty-state">No cards added yet.</p>
                     ) : (
-                        <div className="payment-card-grid">
-                            {cards.map((card) => (
-                                <div key={card.id} className="payment-card-item">
-                                    <CreditCard
-                                        brand={card.brand}
-                                        issuerBank={card.issuerBank}
-                                        lastFour={card.last4}
-                                        expiryMonth={card.expiryMonth}
-                                        expiryYear={card.expiryYear}
-                                        userName={user?.name}
-                                    />
+                        <div className="flex flex-col">
+                            {/* cover flow 3D carousel container */}
+                            <div 
+                                className="relative h-[290px] w-full flex items-center justify-center touch-pan-y overflow-hidden select-none"
+                                onTouchStart={handleTouchStart}
+                                onTouchEnd={handleTouchEnd}
+                            >
+                                {cards.map((card, index) => {
+                                    const offset = index - activeIndex;
+                                    let transformClass = "";
+
+                                    if (offset === 0) {
+                                        transformClass = "translate-x-0 scale-100 opacity-100 z-20";
+                                    } else if (offset === -1) {
+                                        transformClass = "-translate-x-[65%] sm:-translate-x-[50%] scale-85 opacity-50 z-10 cursor-pointer";
+                                    } else if (offset === 1) {
+                                        transformClass = "translate-x-[65%] sm:translate-x-[50%] scale-85 opacity-50 z-10 cursor-pointer";
+                                    } else {
+                                        // Hidden off to sides
+                                        const isLeft = offset < 0;
+                                        transformClass = `${isLeft ? "-translate-x-[200%]" : "translate-x-[200%]"} scale-75 opacity-0 z-0 pointer-events-none`;
+                                    }
+
+                                    return (
+                                        <div 
+                                            key={card.id} 
+                                            onClick={() => {
+                                                if (offset !== 0) {
+                                                    setActiveIndex(index);
+                                                }
+                                            }}
+                                            className={`absolute flex flex-col items-center transition-all duration-500 ease-out bg-transparent border-none shadow-none ${transformClass}`}
+                                        >
+                                            <div className="origin-center scale-[0.78] sm:scale-[0.88] lg:scale-100">
+                                                <CreditCard
+                                                    brand={card.brand}
+                                                    issuerBank={card.issuerBank}
+                                                    lastFour={card.last4}
+                                                    expiryMonth={card.expiryMonth}
+                                                    expiryYear={card.expiryYear}
+                                                    userName={user?.name}
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* dynamic pagination dots */}
+                            <div className="flex justify-center gap-2 mt-4">
+                                {cards.map((_, index) => (
                                     <button
+                                        key={index}
                                         type="button"
-                                        className="secondary-button"
-                                        onClick={() => requestDeleteCard(card.id)}
-                                        disabled={processing}
-                                    >
-                                        Delete
-                                    </button>
-                                </div>
-                            ))}
+                                        onClick={() => setActiveIndex(index)}
+                                        className={`h-2.5 rounded-full transition-all duration-300 ${
+                                            index === activeIndex ? "bg-[#0d6b5f] w-6" : "bg-white border border-[#0d6b5f] w-4 opacity-50 hover:opacity-100"
+                                        } border-0 p-0 m-0 cursor-pointer`}
+                                        aria-label={`Go to slide ${index + 1}`}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     )}
                 </section>

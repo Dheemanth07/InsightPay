@@ -45,7 +45,7 @@ export function QRPage() {
                     toast.success("Payment Received!");
                     clearInterval(intervalId);
                 }
-            } catch (e) {
+            } catch {
                 // Ignore polling errors in background
             }
         }, 3000); // Poll every 3 seconds
@@ -156,7 +156,7 @@ export function QRPage() {
             cands.push(raw);
 
             if (
-                (raw.startsWith('\"') && raw.endsWith('\"')) ||
+                (raw.startsWith('"') && raw.endsWith('"')) ||
                 (raw.startsWith("'") && raw.endsWith("'"))
             ) {
                 cands.push(raw.slice(1, -1));
@@ -165,7 +165,7 @@ export function QRPage() {
             try {
                 const dec = decodeURIComponent(raw);
                 if (dec && dec !== raw) cands.push(dec);
-            } catch (e) {
+            } catch {
                 // ignore
             }
 
@@ -178,7 +178,7 @@ export function QRPage() {
                 const parsed = JSON.parse(raw);
                 const re = JSON.stringify(parsed);
                 if (re !== raw) cands.push(re);
-            } catch (e) {
+            } catch {
                 // ignore
             }
 
@@ -186,7 +186,7 @@ export function QRPage() {
         };
 
         const candidates = normalizeCandidates();
-        let lastErr: any = null;
+        let lastErr: unknown = null;
         for (const candidate of candidates) {
             try {
                 const resp = await validateQR(candidate);
@@ -199,10 +199,8 @@ export function QRPage() {
                 return;
             } catch (err) {
                 lastErr = err;
-                const msg =
-                    (err as any)?.response?.data?.message ||
-                    (err as any)?.message ||
-                    "";
+                const errObj = err as { response?: { data?: { message?: string } }; message?: string };
+                const msg = errObj?.response?.data?.message || errObj?.message || "";
                 if (/tampered|invalid|expired|not found/i.test(msg)) {
                     break;
                 }

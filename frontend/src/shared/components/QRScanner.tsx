@@ -16,24 +16,23 @@ export const QRScanner: React.FC<Props> = ({ onDetected, onClose }) => {
     const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
+        const currentVideo = videoRef.current;
         const start = async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: "environment" },
                 });
                 streamRef.current = stream;
-                if (videoRef.current) {
+                if (currentVideo) {
                     // ensure srcObject only set when element exists
                     try {
-                        videoRef.current.srcObject = stream;
+                        currentVideo.srcObject = stream;
                         // play() can throw AbortError if the element is removed; handle gracefully
-                        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-                        await videoRef.current.play();
+                        await currentVideo.play();
                     } catch (playErr) {
                         // ignore play errors (AbortError when unmounted or extension interference)
                         // keep scanning running — tick will continue if possible
                         // console.warn so debugging remains possible
-                        // eslint-disable-next-line no-console
                         console.warn("Camera play() error:", playErr);
                     }
                 }
@@ -49,12 +48,12 @@ export const QRScanner: React.FC<Props> = ({ onDetected, onClose }) => {
             // stop if no longer scanning
             if (!scanningRef.current) return;
 
-            if (!videoRef.current || !canvasRef.current) {
+            if (!currentVideo || !canvasRef.current) {
                 rafRef.current = requestAnimationFrame(tick);
                 return;
             }
 
-            const video = videoRef.current;
+            const video = currentVideo;
             const canvas = canvasRef.current;
             const ctx = canvas.getContext("2d");
             if (!ctx) {
@@ -74,7 +73,6 @@ export const QRScanner: React.FC<Props> = ({ onDetected, onClose }) => {
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             } catch (drawErr) {
                 // drawing can fail if the video stream was removed; retry next frame
-                // eslint-disable-next-line no-console
                 console.warn("drawImage error", drawErr);
                 rafRef.current = requestAnimationFrame(tick);
                 return;
@@ -98,7 +96,6 @@ export const QRScanner: React.FC<Props> = ({ onDetected, onClose }) => {
                     onDetected(code.data);
                 } catch (e) {
                     // swallow errors from parent handler
-                    // eslint-disable-next-line no-console
                     console.warn("onDetected handler error", e);
                 }
             } else {
@@ -115,14 +112,14 @@ export const QRScanner: React.FC<Props> = ({ onDetected, onClose }) => {
                 streamRef.current.getTracks().forEach((t) => t.stop());
             }
             // clear video srcObject to fully release camera in some browsers
-            if (videoRef.current) {
+            if (currentVideo) {
                 try {
-                    videoRef.current.pause();
+                    currentVideo.pause();
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
-                    videoRef.current.srcObject = null;
-                    videoRef.current.removeAttribute("src");
-                } catch (e) {
+                    currentVideo.srcObject = null;
+                    currentVideo.removeAttribute("src");
+                } catch {
                     // ignore
                 }
             }
@@ -159,11 +156,9 @@ export const QRScanner: React.FC<Props> = ({ onDetected, onClose }) => {
                     onDetected(code.data);
                 } else {
                     // no QR found
-                    // eslint-disable-next-line no-console
                     console.warn("No QR code found in uploaded image");
                 }
             } catch (e) {
-                // eslint-disable-next-line no-console
                 console.error("Error processing uploaded image", e);
             } finally {
                 setUploading(false);

@@ -345,6 +345,7 @@ label {
     margin-bottom: 0.75rem;
     animation: pop-in 240ms ease-out;
 }
+
 .qr-received .check {
     width: 34px;
     height: 34px;
@@ -356,6 +357,7 @@ label {
     border-radius: 999px;
     font-weight: 700;
 }
+
 .qr-received .text {
     font-weight: 600;
 }
@@ -365,6 +367,7 @@ label {
         transform: translateY(-6px) scale(0.98);
         opacity: 0;
     }
+
     to {
         transform: translateY(0) scale(1);
         opacity: 1;
@@ -679,6 +682,7 @@ label {
 }
 
 @media (max-width: 720px) {
+
     .page-header,
     .transaction-row {
         align-items: flex-start;

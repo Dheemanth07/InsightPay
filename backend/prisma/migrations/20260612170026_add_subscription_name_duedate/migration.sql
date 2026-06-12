@@ -1,0 +1,9 @@
+-- AlterTable
+ALTER TABLE `subscription` ADD COLUMN `dueDate` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    ADD COLUMN `name` VARCHAR(191) NOT NULL DEFAULT '',
+    MODIFY `merchantName` VARCHAR(191) NOT NULL DEFAULT '',
+    MODIFY `billingCycle` ENUM('MONTHLY', 'YEARLY') NOT NULL DEFAULT 'MONTHLY',
+    MODIFY `nextBillingDate` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3);
+
+-- CreateIndex
+CREATE INDEX `Subscription_dueDate_idx` ON `Subscription`(`dueDate`);

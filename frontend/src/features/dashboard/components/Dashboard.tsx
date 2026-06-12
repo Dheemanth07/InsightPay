@@ -114,13 +114,13 @@ export function Dashboard() {
                     className="dashboard-bento-wallet flex flex-col justify-between rounded-[28px] border border-[#e8ecf0] bg-white p-6 shadow-[0_1px_0_rgba(15,20,25,0.04),0_12px_40px_rgba(15,20,25,0.06)] sm:p-7"
                 >
                     <div>
-                        <p className="text-sm font-semibold text-[#6b7280]">
+                        <p className="text-lg font-semibold text-[#6b7280]">
                             Wallet balance
                         </p>
-                        <p className="mt-3 text-[2.75rem] font-extrabold leading-none tracking-tight text-[#0f1419] sm:text-5xl">
+                        <p className="mt-3 pt-4 text-[2.75rem] font-extrabold leading-none tracking-tight text-[#0f1419] sm:text-5xl">
                             {formatInr(balance)}
                         </p>
-                        <p className="mt-3 text-sm text-[#6b7280]">
+                        <p className="mt-3 pt-6 text-sm text-[#6b7280]">
                             Available to send or withdraw
                         </p>
                     </div>
@@ -238,11 +238,10 @@ export function Dashboard() {
                                             </p>
                                         </div>
                                         <p
-                                            className={`shrink-0 text-sm font-extrabold tracking-tight ${
-                                                isCredit
-                                                    ? "text-[#177245]"
-                                                    : "text-[#0f1419]"
-                                            }`}
+                                            className={`shrink-0 text-sm font-extrabold tracking-tight ${isCredit
+                                                ? "text-[#177245]"
+                                                : "text-[#0f1419]"
+                                                }`}
                                         >
                                             {isCredit ? "+" : "−"}
                                             {formatInr(Math.abs(transaction.signedAmount))}

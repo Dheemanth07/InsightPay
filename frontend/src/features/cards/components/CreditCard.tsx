@@ -392,13 +392,13 @@ export function CreditCard({
     lastFour,
     expiryMonth,
     expiryYear,
-    userName = "DHEEMANTH D",
+    userName = "CARDHOLDER",
 }: CreditCardProps) {
     const theme = resolveTheme(issuerBank);
     const last4 = safeLastFour(lastFour);
     const expiry = formatExpiry(expiryMonth, expiryYear);
     const maskedNumber = `•••• •••• •••• ${last4}`;
-    const holderName = userName.trim().toUpperCase() || "DHEEMANTH D";
+    const holderName = userName.trim().toUpperCase() || "CARDHOLDER";
 
     const cardStyles: Record<Theme, CSSProperties> = {
         axis: {

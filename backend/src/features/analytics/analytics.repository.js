@@ -1,5 +1,4 @@
 import prisma from "../../prisma.js";
-
 export const getSubscriptionsByUserId = (userId) => {
     return prisma.subscription.findMany({
         where: { userId },
@@ -17,12 +16,11 @@ export const getSubscriptionsByUserId = (userId) => {
         },
     });
 };
-
 export const getUpcomingSubscriptions = (userId, startDate, endDate) => {
     return prisma.subscription.findMany({
         where: {
             userId,
-            nextBillingDate: {
+            dueDate: {
                 gte: startDate,
                 lte: endDate,
             },
@@ -40,11 +38,10 @@ export const getUpcomingSubscriptions = (userId, startDate, endDate) => {
             },
         },
         orderBy: {
-            nextBillingDate: "asc",
+            dueDate: "asc",
         },
     });
 };
-
 export const createSubscription = (data) => {
     return prisma.subscription.create({
         data,
@@ -62,7 +59,6 @@ export const createSubscription = (data) => {
         },
     });
 };
-
 export const getSpendingGroupedByCategory = async (userId, startDate) => {
     const transactions = await prisma.transaction.findMany({
         where: {
@@ -84,17 +80,14 @@ export const getSpendingGroupedByCategory = async (userId, startDate) => {
             },
         },
     });
-
     const categoryMap = {};
     let totalSpending = 0;
-
     transactions.forEach((tx) => {
         const catName = tx.category ? tx.category.name : "Uncategorized";
         const amount = Number(tx.amount) || 0;
         categoryMap[catName] = (categoryMap[catName] || 0) + amount;
         totalSpending += amount;
     });
-
     return {
         totalSpending,
         categories: Object.entries(categoryMap).map(([category, amount]) => ({

@@ -4,6 +4,7 @@ import { getUsersSuggestions, searchUsers, initiateSplit } from "../splits.api";
 import type { SplitUser } from "../splits.api";
 import type { Transaction } from "../transactions.types";
 import { getApiErrorMessage } from "../../../shared/api/errors";
+import { Spinner } from "../../../shared/components/Spinner";
 
 export interface SplitBillModalProps {
     transaction: Transaction;
@@ -196,20 +197,27 @@ export function SplitBillModal({ transaction, onClose, onSuccess }: SplitBillMod
                     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                         <label style={{ display: "grid", gap: "0.35rem", color: "#475569", fontSize: "0.85rem", fontWeight: 600 }}>
                             Select friends to split with
-                            <input 
-                                type="text" 
-                                placeholder="Search by name or email" 
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                style={{ 
-                                    padding: "0.65rem 0.85rem", 
-                                    fontSize: "0.9rem", 
-                                    borderRadius: "10px", 
-                                    border: "1px solid #dce4e8", 
-                                    width: "100%",
-                                    marginBottom: 0
-                                }}
-                            />
+                            <div style={{ position: "relative", width: "100%" }}>
+                                <input 
+                                    type="text" 
+                                    placeholder="Search by name or email" 
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    style={{ 
+                                        padding: "0.65rem 2.25rem 0.65rem 0.85rem", 
+                                        fontSize: "0.9rem", 
+                                        borderRadius: "10px", 
+                                        border: "1px solid #dce4e8", 
+                                        width: "100%",
+                                        marginBottom: 0
+                                    }}
+                                />
+                                {loadingSearch && (
+                                    <div style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)" }}>
+                                        <Spinner size="h-4 w-4" color="text-emerald-800" />
+                                    </div>
+                                )}
+                            </div>
                         </label>
 
                         <div 
@@ -389,6 +397,7 @@ export function SplitBillModal({ transaction, onClose, onSuccess }: SplitBillMod
                             type="button"
                             onClick={handleSplitSubmit}
                             disabled={submitting || selectedUsers.length === 0}
+                            className="flex items-center justify-center"
                             style={{ 
                                 width: "100%", 
                                 padding: "0.85rem", 
@@ -398,7 +407,7 @@ export function SplitBillModal({ transaction, onClose, onSuccess }: SplitBillMod
                                 marginTop: "0.5rem"
                             }}
                         >
-                            {submitting ? "Splitting..." : "Split this bill"}
+                            {submitting ? <Spinner size="h-5 w-5" color="text-white" /> : "Split this bill"}
                         </button>
                     </div>
                 )}

@@ -4,6 +4,7 @@ import { getCards } from "../../cards/cards.api";
 import type { Subscription } from "../dashboard.types";
 import type { Card } from "../../cards/cards.types";
 import { getApiErrorMessage } from "../../../shared/api/errors";
+import { Skeleton } from "../../../shared/components/Skeleton";
 // ─────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────
@@ -31,14 +32,14 @@ const getRelativeDueText = (dateStr: string) => {
 // ─────────────────────────────────────────────────────
 function SkeletonRow() {
     return (
-        <div className="flex items-center justify-between rounded-2xl border border-[#edf1f3] bg-[#fafbfc] p-3.5 animate-pulse">
+        <div className="flex items-center justify-between rounded-2xl border border-[#edf1f3] bg-[#fafbfc] p-3.5">
             <div className="flex-1 pr-2 space-y-2">
-                <div className="h-3.5 w-28 rounded-full bg-gray-200" />
-                <div className="h-2.5 w-16 rounded-full bg-gray-100" />
+                <Skeleton width="w-28" height="h-3.5" rounded="rounded-full" />
+                <Skeleton width="w-16" height="h-2.5" rounded="rounded-full" />
             </div>
             <div className="text-right space-y-2">
-                <div className="h-3.5 w-14 rounded-full bg-gray-200 ml-auto" />
-                <div className="h-2.5 w-20 rounded-full bg-gray-100 ml-auto" />
+                <Skeleton width="w-14" height="h-3.5" rounded="rounded-full" className="ml-auto" />
+                <Skeleton width="w-20" height="h-2.5" rounded="rounded-full" className="ml-auto" />
             </div>
         </div>
     );
@@ -273,7 +274,10 @@ export function UpcomingBills() {
         return (
             <section className={sectionClass}>
                 <Header showAdd={false} />
-                <div className="space-y-2.5">
+                <div className="space-y-3">
+                    {/* Pulsing banner placeholder for GenAI insight */}
+                    <Skeleton width="w-full" height="h-16" rounded="rounded-2xl" />
+                    {/* Stacked item rows */}
                     <SkeletonRow />
                     <SkeletonRow />
                     <SkeletonRow />

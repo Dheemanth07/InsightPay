@@ -5,6 +5,7 @@ import { CreditCard } from "../components/CreditCard";
 import type { Card } from "../cards.types";
 import { ConfirmationModal } from "../../../shared/components/ConfirmationModal";
 import { useAuth } from "../../auth/auth.context";
+import { Skeleton } from "../../../shared/components/Skeleton";
 
 export function CardsPage() {
     const [cards, setCards] = useState<Card[]>([]);
@@ -120,7 +121,61 @@ export function CardsPage() {
     };
 
     if (loading) {
-        return <p className="page-status">Loading cards...</p>;
+        return (
+            <main className="app-page">
+                <header className="page-header">
+                    <div>
+                        <Skeleton width="w-16" height="h-3.5" rounded="rounded-md" className="mb-2" />
+                        <Skeleton width="w-64" height="h-8" rounded="rounded-lg" />
+                    </div>
+                </header>
+
+                <section className="panel space-y-4">
+                    <Skeleton width="w-32" height="h-6" rounded="rounded-md" />
+                    <div className="space-y-3">
+                        <div className="space-y-2">
+                            <Skeleton width="w-24" height="h-3.5" rounded="rounded-md" />
+                            <Skeleton width="w-full" height="h-10" rounded="rounded-lg" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Skeleton width="w-20" height="h-3.5" rounded="rounded-md" />
+                                <Skeleton width="w-full" height="h-10" rounded="rounded-lg" />
+                            </div>
+                            <div className="space-y-2">
+                                <Skeleton width="w-24" height="h-3.5" rounded="rounded-md" />
+                                <Skeleton width="w-full" height="h-10" rounded="rounded-lg" />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Skeleton width="w-24" height="h-3.5" rounded="rounded-md" />
+                                <Skeleton width="w-full" height="h-10" rounded="rounded-lg" />
+                            </div>
+                            <div className="space-y-2">
+                                <Skeleton width="w-20" height="h-3.5" rounded="rounded-md" />
+                                <Skeleton width="w-full" height="h-10" rounded="rounded-lg" />
+                            </div>
+                        </div>
+                    </div>
+                    <Skeleton width="w-32" height="h-12" rounded="rounded-lg" />
+                </section>
+
+                <section className="panel space-y-4">
+                    <Skeleton width="w-28" height="h-6" rounded="rounded-md" />
+                    <div className="payment-card-grid">
+                        {Array.from({ length: 2 }).map((_, i) => (
+                            <div key={i} className="payment-card-item flex flex-col items-center gap-4">
+                                <div className="origin-center scale-[0.78] sm:scale-[0.88] lg:scale-100">
+                                    <Skeleton width="w-[400px]" height="h-[210px]" rounded="rounded-2xl" />
+                                </div>
+                                <Skeleton width="w-20" height="h-10" rounded="rounded-lg" />
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            </main>
+        );
     }
 
     return (

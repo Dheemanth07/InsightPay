@@ -13,6 +13,8 @@ import {
     rejectSplitShare,
 } from "../../transactions/splits.api";
 import type { SplitRequest } from "../../transactions/splits.api";
+import { Spinner } from "../../../shared/components/Spinner";
+import { Skeleton } from "../../../shared/components/Skeleton";
 
 export function WalletPage() {
     const [balance, setBalance] = useState<number>(0);
@@ -179,7 +181,56 @@ export function WalletPage() {
     };
 
     if (loading) {
-        return <p className="page-status">Loading wallet...</p>;
+        return (
+            <main className="app-page wallet-page">
+                <header className="page-header">
+                    <div>
+                        <Skeleton width="w-16" height="h-3.5" rounded="rounded-md" className="mb-2" />
+                        <Skeleton width="w-56" height="h-8" rounded="rounded-lg" />
+                    </div>
+                </header>
+
+                <section className="panel balance-panel flex flex-col justify-center space-y-3">
+                    <Skeleton width="w-24" height="h-4" rounded="rounded-md" />
+                    <Skeleton width="w-40" height="h-8" rounded="rounded-md" />
+                </section>
+
+                <section className="wallet-actions">
+                    <div className="wallet-actions-row">
+                        <div className="panel space-y-4">
+                            <Skeleton width="w-28" height="h-6" rounded="rounded-md" />
+                            <div className="space-y-2">
+                                <Skeleton width="w-16" height="h-3.5" rounded="rounded-md" />
+                                <Skeleton width="w-full" height="h-10" rounded="rounded-lg" />
+                            </div>
+                            <Skeleton width="w-full" height="h-12" rounded="rounded-lg" />
+                        </div>
+
+                        <div className="panel space-y-4">
+                            <Skeleton width="w-36" height="h-6" rounded="rounded-md" />
+                            <div className="space-y-2">
+                                <Skeleton width="w-16" height="h-3.5" rounded="rounded-md" />
+                                <Skeleton width="w-full" height="h-10" rounded="rounded-lg" />
+                            </div>
+                            <Skeleton width="w-full" height="h-12" rounded="rounded-lg" />
+                        </div>
+                    </div>
+
+                    <div className="panel space-y-4">
+                        <Skeleton width="w-28" height="h-6" rounded="rounded-md" />
+                        <div className="space-y-2">
+                            <Skeleton width="w-20" height="h-3.5" rounded="rounded-md" />
+                            <Skeleton width="w-full" height="h-10" rounded="rounded-lg" />
+                        </div>
+                        <div className="space-y-2">
+                            <Skeleton width="w-16" height="h-3.5" rounded="rounded-md" />
+                            <Skeleton width="w-full" height="h-10" rounded="rounded-lg" />
+                        </div>
+                        <Skeleton width="w-full" height="h-12" rounded="rounded-lg" />
+                    </div>
+                </section>
+            </main>
+        );
     }
 
     if (error) {
@@ -291,8 +342,9 @@ export function WalletPage() {
                             type="button"
                             onClick={handleAddMoney}
                             disabled={processing}
+                            className="w-full flex items-center justify-center"
                         >
-                            {processing ? "Processing..." : "Add Money"}
+                            {processing ? <Spinner size="h-5 w-5" color="text-white" /> : "Add Money"}
                         </button>
                     </div>
 
@@ -313,8 +365,9 @@ export function WalletPage() {
                             type="button"
                             onClick={handleWithdrawMoney}
                             disabled={processing}
+                            className="w-full flex items-center justify-center"
                         >
-                            {processing ? "Processing..." : "Withdraw"}
+                            {processing ? <Spinner size="h-5 w-5" color="text-white" /> : "Withdraw"}
                         </button>
                     </div>
                 </div>
@@ -347,8 +400,9 @@ export function WalletPage() {
                         type="button"
                         onClick={handleSendMoney}
                         disabled={processing}
+                        className="w-full flex items-center justify-center"
                     >
-                        {processing ? "Processing..." : "Send"}
+                        {processing ? <Spinner size="h-5 w-5" color="text-white" /> : "Send"}
                     </button>
                 </div>
             </section>

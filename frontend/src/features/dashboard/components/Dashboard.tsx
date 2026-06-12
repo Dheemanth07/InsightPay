@@ -9,6 +9,7 @@ import type { WalletTransaction } from "../../wallet/wallet.types";
 import { getApiErrorMessage } from "../../../shared/api/errors";
 import { UpcomingBills } from "./UpcomingBills";
 import { FinancialRoast } from "./FinancialRoast";
+import { Skeleton } from "../../../shared/components/Skeleton";
 
 const formatInr = (value: number | string) => {
     const amount = Number(value);
@@ -117,12 +118,21 @@ export function Dashboard() {
                         <p className="text-lg font-semibold text-[#6b7280]">
                             Wallet balance
                         </p>
-                        <p className="mt-3 pt-4 text-[2.75rem] font-extrabold leading-none tracking-tight text-[#0f1419] sm:text-5xl">
-                            {formatInr(balance)}
-                        </p>
-                        <p className="mt-3 pt-6 text-sm text-[#6b7280]">
-                            Available to send or withdraw
-                        </p>
+                        {loadingTransactions ? (
+                            <div className="mt-3 pt-4 space-y-4">
+                                <Skeleton width="w-40" height="h-10" rounded="rounded-lg" />
+                                <Skeleton width="w-48" height="h-4" rounded="rounded-md" className="mt-3 pt-6" />
+                            </div>
+                        ) : (
+                            <>
+                                <p className="mt-3 pt-4 text-[2.75rem] font-extrabold leading-none tracking-tight text-[#0f1419] sm:text-5xl">
+                                    {formatInr(balance)}
+                                </p>
+                                <p className="mt-3 pt-6 text-sm text-[#6b7280]">
+                                    Available to send or withdraw
+                                </p>
+                            </>
+                        )}
                     </div>
 
                     <div className="mt-6 flex flex-wrap gap-2">
@@ -164,7 +174,9 @@ export function Dashboard() {
 
                     <div className="flex min-h-[210px] items-center justify-center">
                         {loadingCard ? (
-                            <p className="text-sm text-[#6b7280]">Loading card…</p>
+                            <div className="origin-center scale-[0.78] sm:scale-[0.88] lg:scale-100">
+                                <Skeleton width="w-[400px]" height="h-[210px]" rounded="rounded-2xl" />
+                            </div>
                         ) : primaryCard ? (
                             <div className="origin-center scale-[0.78] sm:scale-[0.88] lg:scale-100">
                                 <CreditCard
@@ -214,7 +226,20 @@ export function Dashboard() {
                     </div>
 
                     {loadingTransactions ? (
-                        <p className="text-sm text-[#6b7280]">Loading activity…</p>
+                        <div className="divide-y divide-[#eef2f5] w-full">
+                            {Array.from({ length: 5 }).map((_, idx) => (
+                                <div
+                                    key={idx}
+                                    className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0"
+                                >
+                                    <div className="space-y-2">
+                                        <Skeleton width="w-28" height="h-4" rounded="rounded-md" />
+                                        <Skeleton width="w-16" height="h-3" rounded="rounded-md" />
+                                    </div>
+                                    <Skeleton width="w-20" height="h-4" rounded="rounded-md" />
+                                </div>
+                            ))}
+                        </div>
                     ) : transactions.length === 0 ? (
                         <p className="rounded-2xl bg-[#f8fafb] px-4 py-8 text-center text-sm text-[#6b7280]">
                             No transactions yet. Add money or send to someone to get started.

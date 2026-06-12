@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Spinner } from "./Spinner";
 
 interface ConfirmationModalProps {
     isOpen: boolean;
@@ -118,6 +119,7 @@ export function ConfirmationModal({
                         type="button"
                         onClick={onConfirm}
                         disabled={isProcessing}
+                        className="flex items-center justify-center"
                         style={{
                             flex: 1,
                             padding: "0.7rem 1rem",
@@ -140,7 +142,11 @@ export function ConfirmationModal({
                                 e.currentTarget.style.backgroundColor = "#dc2626";
                         }}
                     >
-                        {isProcessing ? "Processing..." : confirmText}
+                        {isProcessing ? (
+                            <Spinner size="h-5 w-5" color="text-white" />
+                        ) : (
+                            confirmText
+                        )}
                     </button>
                 </div>
             </div>

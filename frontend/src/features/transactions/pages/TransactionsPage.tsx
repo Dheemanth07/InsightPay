@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getCategories } from "../../categories/categories.api";
 import type { Category } from "../../categories/categories.types";
 import { getApiErrorMessage } from "../../../shared/api/errors";
+import { Skeleton } from "../../../shared/components/Skeleton";
 import {
     getTransactions,
     updateTransactionCategory,
@@ -251,7 +252,49 @@ export function TransactionsPage() {
     };
 
     if (loading) {
-        return <p className="page-status">Loading transactions...</p>;
+        return (
+            <main className="app-page">
+                <header className="page-header">
+                    <div>
+                        <Skeleton width="w-16" height="h-3.5" rounded="rounded-md" className="mb-2" />
+                        <Skeleton width="w-48" height="h-8" rounded="rounded-lg" />
+                    </div>
+                </header>
+
+                <section className="panel transaction-toolbar flex items-center justify-between gap-4">
+                    <Skeleton width="w-full" height="h-10" rounded="rounded-lg" />
+                    <Skeleton width="w-24" height="h-10" rounded="rounded-lg" />
+                </section>
+
+                <div className="space-y-8">
+                    {Array.from({ length: 2 }).map((_, monthIdx) => (
+                        <div key={monthIdx} className="space-y-4">
+                            <div className="flex items-center justify-between border-b border-[#edf1f3] pb-3">
+                                <div className="space-y-2">
+                                    <Skeleton width="w-32" height="h-6" rounded="rounded-md" />
+                                    <Skeleton width="w-48" height="h-4" rounded="rounded-md" />
+                                </div>
+                            </div>
+                            <div className="transaction-list space-y-4">
+                                {Array.from({ length: 3 }).map((_, itemIdx) => (
+                                    <div key={itemIdx} className="transaction-row flex items-center justify-between p-4 border border-[#edf1f3] rounded-2xl bg-[#fafbfc]">
+                                        <div className="space-y-3 flex-1 pr-4">
+                                            <Skeleton width="w-24" height="h-4" rounded="rounded-md" />
+                                            <div className="flex items-center gap-2">
+                                                <Skeleton width="w-16" height="h-3" rounded="rounded-md" />
+                                                <Skeleton width="w-16" height="h-5" rounded="rounded-full" />
+                                            </div>
+                                            <Skeleton width="w-32" height="h-3" rounded="rounded-md" />
+                                        </div>
+                                        <Skeleton width="w-20" height="h-6" rounded="rounded-md" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </main>
+        );
     }
 
     if (error) {

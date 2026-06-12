@@ -7,6 +7,7 @@ import {
 } from "../categories.api";
 import type { Category } from "../categories.types";
 import { ConfirmationModal } from "../../../shared/components/ConfirmationModal";
+import { Skeleton } from "../../../shared/components/Skeleton";
 
 export function CategoriesPage() {
     const [categories, setCategories] = useState<Category[]>([]);
@@ -95,7 +96,43 @@ export function CategoriesPage() {
     };
 
     if (loading) {
-        return <p className="page-status">Loading categories...</p>;
+        return (
+            <main className="app-page">
+                <header className="page-header">
+                    <div>
+                        <Skeleton width="w-16" height="h-3.5" rounded="rounded-md" className="mb-2" />
+                        <Skeleton width="w-48" height="h-8" rounded="rounded-lg" />
+                    </div>
+                </header>
+
+                <section className="panel space-y-4">
+                    <Skeleton width="w-40" height="h-6" rounded="rounded-md" />
+                    <div className="space-y-3">
+                        <div className="space-y-2">
+                            <Skeleton width="w-24" height="h-3.5" rounded="rounded-md" />
+                            <Skeleton width="w-full" height="h-10" rounded="rounded-lg" />
+                        </div>
+                        <div className="space-y-2">
+                            <Skeleton width="w-16" height="h-3.5" rounded="rounded-md" />
+                            <Skeleton width="w-full" height="h-10" rounded="rounded-lg" />
+                        </div>
+                    </div>
+                    <Skeleton width="w-36" height="h-12" rounded="rounded-lg" />
+                </section>
+
+                <section className="panel space-y-4">
+                    <Skeleton width="w-32" height="h-6" rounded="rounded-md" />
+                    <div className="category-grid">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} className="category-card flex items-center justify-between p-4 border border-[#e8ecf0] rounded-[16px]">
+                                <Skeleton width="w-24" height="h-4" rounded="rounded-md" />
+                                {i % 2 === 0 && <Skeleton width="w-14" height="h-8" rounded="rounded-lg" />}
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            </main>
+        );
     }
 
     return (

@@ -6,8 +6,11 @@ export const getWalletOwner = () => {
     return apiClient.get<User>("/auth/me");
 };
 
-export const getWalletTransactions = (cursor?: number | null) => {
-    const params = new URLSearchParams({ limit: "10" });
+export const getWalletTransactions = (
+    cursor?: number | null,
+    limit = 10,
+) => {
+    const params = new URLSearchParams({ limit: String(limit) });
 
     if (cursor) {
         params.set("cursor", String(cursor));

@@ -3,6 +3,7 @@ import { getApiErrorMessage } from "../../../shared/api/errors";
 import { addCard, deleteCard, getCards } from "../cards.api";
 import { CreditCard } from "../components/CreditCard";
 import type { Card } from "../cards.types";
+import { ConfirmationModal } from "../../../shared/components/ConfirmationModal";
 
 export function CardsPage() {
     const [cards, setCards] = useState<Card[]>([]);
@@ -14,6 +15,8 @@ export function CardsPage() {
     const [expiryMonth, setExpiryMonth] = useState("");
     const [expiryYear, setExpiryYear] = useState("");
     const [processing, setProcessing] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [cardToDelete, setCardToDelete] = useState<string | null>(null);
 
     const fetchCards = useCallback(async () => {
         try {
@@ -86,22 +89,32 @@ export function CardsPage() {
         }
     };
 
-    const handleDeleteCard = async (cardId: string) => {
-        if (!confirm("Are you sure you want to delete this card?")) {
-            return;
-        }
+    const requestDeleteCard = (cardId: string) => {
+        setCardToDelete(cardId);
+        setIsDeleteModalOpen(true);
+    };
 
+    const handleDeleteCard = async () => {
+        if (!cardToDelete) return;
+
+        setIsDeleteModalOpen(false);
         setProcessing(true);
         setError("");
 
         try {
-            await deleteCard(cardId);
+            await deleteCard(cardToDelete);
             await fetchCards();
         } catch (err) {
             setError(getApiErrorMessage(err, "Failed to delete card"));
         } finally {
             setProcessing(false);
+            setCardToDelete(null);
         }
+    };
+
+    const cancelDeleteCard = () => {
+        setIsDeleteModalOpen(false);
+        setCardToDelete(null);
     };
 
     if (loading) {
@@ -109,6 +122,7 @@ export function CardsPage() {
     }
 
     return (
+        <>
         <main className="app-page">
             <header className="page-header">
                 <div>
@@ -212,7 +226,7 @@ export function CardsPage() {
                                 <button
                                     type="button"
                                     className="secondary-button"
-                                    onClick={() => handleDeleteCard(card.id)}
+                                    onClick={() => requestDeleteCard(card.id)}
                                     disabled={processing}
                                 >
                                     Delete
@@ -223,5 +237,15 @@ export function CardsPage() {
                 )}
             </section>
         </main>
+            <ConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={cancelDeleteCard}
+                onConfirm={handleDeleteCard}
+                title="Delete Card?"
+                description="Are you sure you want to remove this card? This action cannot be undone."
+                confirmText="Delete Card"
+                isProcessing={processing}
+            />
+        </>
     );
 }

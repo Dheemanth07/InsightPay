@@ -64,7 +64,7 @@ export const generateQrForPayment = async (receiverId, amount) => {
     const qrData = JSON.stringify({ payload, signature: signQR(payload) });
     const qrImage = await QRCode.toDataURL(qrData);
 
-    return { qrData, qrImage, reference, expiresAt };
+    return { qrData, qrImage, reference, expiresAt, amount };
 };
 
 export const validateQrPayment = async (qrData) => {

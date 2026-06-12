@@ -23,9 +23,38 @@ export function QRPage() {
     const [showScanner, setShowScanner] = useState(false);
     const [sendAmount, setSendAmount] = useState("");
     const [sendReceiverId, setSendReceiverId] = useState<number | null>(null);
-    const [pollingRef, setPollingRef] = useState<number | null>(null);
-    const [received, setReceived] = useState(false);
     const [receivedAmount, setReceivedAmount] = useState<number | null>(null);
+    const [paymentSuccess, setPaymentSuccess] = useState(false);
+
+    // Auto-polling for QR status
+    useEffect(() => {
+        if (step !== "validate" || !generatedQR) {
+            setPaymentSuccess(false);
+            return;
+        }
+
+        let isMounted = true;
+        const intervalId = setInterval(async () => {
+            try {
+                const statusResp = await getQrStatus(generatedQR.reference);
+                if (!isMounted) return;
+
+                if (statusResp.data?.status === "SUCCESS") {
+                    setReceivedAmount(statusResp.data.amount ?? Number(generatedQR.amount));
+                    setPaymentSuccess(true);
+                    toast.success("Payment Received!");
+                    clearInterval(intervalId);
+                }
+            } catch (e) {
+                // Ignore polling errors in background
+            }
+        }, 3000); // Poll every 3 seconds
+
+        return () => {
+            isMounted = false;
+            clearInterval(intervalId);
+        };
+    }, [step, generatedQR]);
 
     const handleGenerateQR = async () => {
         const qrAmount = Number(amount);
@@ -42,29 +71,6 @@ export function QRPage() {
             setGeneratedQR(response.data);
             setQrData(response.data.qrData);
             setStep("validate");
-
-            // start polling status for receiver to see payment
-            if (pollingRef) window.clearInterval(pollingRef);
-            const intervalId = window.setInterval(async () => {
-                try {
-                    const statusResp = await getQrStatus(
-                        response.data.reference,
-                    );
-                    if (statusResp.data?.status === "SUCCESS") {
-                        // stop polling
-                        clearInterval(intervalId);
-                        setPollingRef(null);
-                        // set in-UI received state so receiver sees blue tick
-                        setReceived(true);
-                        setReceivedAmount(statusResp.data.amount ?? null);
-                        // auto-hide after a short duration
-                        setTimeout(() => setReceived(false), 6000);
-                    }
-                } catch (e) {
-                    // ignore polling errors
-                }
-            }, 2000);
-            setPollingRef(intervalId);
         } catch (err) {
             setError(getApiErrorMessage(err, "Failed to generate QR"));
         } finally {
@@ -72,28 +78,42 @@ export function QRPage() {
         }
     };
 
-    const handleValidateQR = async () => {
-        if (!qrData.trim()) {
-            setError("QR data is required");
-            return;
+    const handleShareQR = async () => {
+        if (!generatedQR) return;
+
+        if (navigator.share) {
+            try {
+                const response = await fetch(generatedQR.qrImage);
+                const blob = await response.blob();
+                const file = new File([blob], `payment-qr-${generatedQR.reference}.png`, { type: blob.type });
+
+                await navigator.share({
+                    title: "InsightPay Payment QR",
+                    text: `Scan this QR code to pay ₹${generatedQR.amount || amount}`,
+                    files: [file],
+                });
+                return;
+            } catch (err) {
+                console.error("Web Share failed, falling back to download:", err);
+            }
         }
 
-        setLoading(true);
-        setError("");
-
+        // Fallback: Download QR as image
         try {
-            const response = await validateQR(qrData);
-            // after validation, move to sender confirmation flow
-            setSendAmount(String(response.data.amount));
-            setSendReceiverId(response.data.receiverId);
-            setValidatedQR({ ...response.data, isValid: true });
-            setStep("confirm");
+            const link = document.createElement("a");
+            link.href = generatedQR.qrImage;
+            link.download = `payment-qr-${generatedQR.reference}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success("QR code downloaded successfully!");
         } catch (err) {
-            setError(getApiErrorMessage(err, "Failed to validate QR"));
-        } finally {
-            setLoading(false);
+            console.error("Download failed:", err);
+            toast.error("Failed to share or download QR code.");
         }
     };
+
+
 
     const handleConfirmPayment = async () => {
         if (!qrData.trim()) {
@@ -126,7 +146,6 @@ export function QRPage() {
     };
 
     const handleScanDetected = async (data: string) => {
-        // fill qrData and validate with normalization attempts
         setShowScanner(false);
         setQrData(data);
         setLoading(true);
@@ -136,7 +155,6 @@ export function QRPage() {
             const raw = data?.trim() || "";
             cands.push(raw);
 
-            // strip wrapping quotes
             if (
                 (raw.startsWith('\"') && raw.endsWith('\"')) ||
                 (raw.startsWith("'") && raw.endsWith("'"))
@@ -144,7 +162,6 @@ export function QRPage() {
                 cands.push(raw.slice(1, -1));
             }
 
-            // attempt decodeURIComponent
             try {
                 const dec = decodeURIComponent(raw);
                 if (dec && dec !== raw) cands.push(dec);
@@ -152,13 +169,11 @@ export function QRPage() {
                 // ignore
             }
 
-            // common HTML entities
             const htmlUnescaped = raw
                 .replace(/&quot;|&#34;/g, '"')
                 .replace(/&amp;/g, "&");
             if (htmlUnescaped !== raw) cands.push(htmlUnescaped);
 
-            // try JSON.parse then re-stringify to normalize escaping
             try {
                 const parsed = JSON.parse(raw);
                 const re = JSON.stringify(parsed);
@@ -167,7 +182,6 @@ export function QRPage() {
                 // ignore
             }
 
-            // unique
             return Array.from(new Set(cands));
         };
 
@@ -176,7 +190,6 @@ export function QRPage() {
         for (const candidate of candidates) {
             try {
                 const resp = await validateQR(candidate);
-                // success
                 setValidatedQR({ ...resp.data, isValid: true });
                 setSendAmount(String(resp.data.amount));
                 setSendReceiverId(resp.data.receiverId);
@@ -186,7 +199,6 @@ export function QRPage() {
                 return;
             } catch (err) {
                 lastErr = err;
-                // if backend indicates tampered/expired, stop trying other normalizations
                 const msg =
                     (err as any)?.response?.data?.message ||
                     (err as any)?.message ||
@@ -194,7 +206,6 @@ export function QRPage() {
                 if (/tampered|invalid|expired|not found/i.test(msg)) {
                     break;
                 }
-                // otherwise continue trying next candidate
             }
         }
 
@@ -208,187 +219,254 @@ export function QRPage() {
         setLoading(false);
     };
 
-    useEffect(() => {
-        return () => {
-            if (pollingRef) clearInterval(pollingRef);
-        };
-    }, [pollingRef]);
-
     return (
         <main className="app-page">
-            <header className="page-header">
-                <div>
-                    <p className="eyebrow">QR Payment</p>
-                    <h1>Generate & Confirm QR Payments</h1>
-                </div>
-            </header>
+            <div className="max-w-md mx-auto w-full flex flex-col gap-6">
+                <header className="page-header" style={{ justifyContent: "center", textAlign: "center" }}>
+                    <div>
+                        <p className="eyebrow">QR Payment</p>
+                        <h1 style={{ fontSize: "1.6rem" }}>Generate &amp; Confirm QR Payments</h1>
+                    </div>
+                </header>
 
-            {error && <p className="error-text">{error}</p>}
+                {error && <p className="error-text">{error}</p>}
 
-            <div
-                style={{
-                    display: "flex",
-                    gap: "0.75rem",
-                    marginBottom: "1rem",
-                }}
-            >
-                <button
-                    type="button"
-                    className="primary-link"
-                    onClick={() => {
-                        setShowScanner(true);
-                        setStep("scan");
-                    }}
-                >
-                    Send Money
-                </button>
-                <button
-                    type="button"
-                    className="primary-link"
-                    onClick={() => {
-                        setStep("generate");
-                        setShowScanner(false);
-                    }}
-                >
-                    Receive Payment
-                </button>
-            </div>
-
-            {showScanner && (
-                <section className="panel">
-                    <h2>Scan QR to Send</h2>
-                    <QRScanner
-                        onDetected={(data) => handleScanDetected(data)}
-                        onClose={() => setShowScanner(false)}
-                    />
-                </section>
-            )}
-
-            {step === "generate" && (
-                <section className="panel">
-                    <h2>Generate QR Code</h2>
-                    <label>
-                        Amount
-                        <input
-                            type="number"
-                            min="1"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            placeholder="Enter amount"
-                        />
-                    </label>
+                {/* Segmented Control Toggle */}
+                <div className="flex p-1 rounded-lg w-full" style={{ backgroundColor: "#e5e7eb" }}>
                     <button
                         type="button"
-                        onClick={handleGenerateQR}
-                        disabled={loading}
+                        onClick={() => {
+                            setStep("generate");
+                            setShowScanner(false);
+                            setPaymentSuccess(false);
+                        }}
+                        style={{
+                            flex: 1,
+                            padding: "0.5rem 1rem",
+                            borderRadius: "6px",
+                            fontSize: "0.875rem",
+                            fontWeight: 600,
+                            border: "none",
+                            cursor: "pointer",
+                            transition: "all 0.18s ease",
+                            backgroundColor: !(step === "scan" || showScanner) ? "#ffffff" : "transparent",
+                            color: !(step === "scan" || showScanner) ? "#065f46" : "#6b7280",
+                            boxShadow: !(step === "scan" || showScanner) ? "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)" : "none",
+                        }}
                     >
-                        {loading ? "Generating..." : "Generate QR"}
+                        Receive Payment
                     </button>
-                </section>
-            )}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setShowScanner(true);
+                            setStep("scan");
+                        }}
+                        style={{
+                            flex: 1,
+                            padding: "0.5rem 1rem",
+                            borderRadius: "6px",
+                            fontSize: "0.875rem",
+                            fontWeight: 600,
+                            border: "none",
+                            cursor: "pointer",
+                            transition: "all 0.18s ease",
+                            backgroundColor: (step === "scan" || showScanner) ? "#ffffff" : "transparent",
+                            color: (step === "scan" || showScanner) ? "#065f46" : "#6b7280",
+                            boxShadow: (step === "scan" || showScanner) ? "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)" : "none",
+                        }}
+                    >
+                        Send Money
+                    </button>
+                </div>
 
-            {step === "validate" && generatedQR && (
-                <section className="panel">
-                    <h2>QR Generated</h2>
-                    {received && (
-                        <div className="qr-received">
-                            <div className="check">✓</div>
-                            <div className="text">
-                                Payment received: INR {receivedAmount}
-                            </div>
+                {showScanner && (
+                    <section className="panel">
+                        <h2>Scan QR to Send</h2>
+                        <QRScanner
+                            onDetected={(data) => handleScanDetected(data)}
+                            onClose={() => setShowScanner(false)}
+                        />
+                    </section>
+                )}
+
+                {/* Payment Success View */}
+                {paymentSuccess && (
+                    <section className="panel flex flex-col items-center text-center bg-emerald-50 border border-emerald-200 p-8 rounded-2xl animate-fade-in">
+                        <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-white text-3xl mb-4 shadow-sm">
+                            ✓
                         </div>
-                    )}
-                    <p>Amount: INR {generatedQR.amount}</p>
-                    <p>
-                        Expires:{" "}
-                        {new Date(generatedQR.expiresAt).toLocaleString()}
-                    </p>
-                    <div className="qr-card">
-                        <img
-                            src={generatedQR.qrImage}
-                            alt="Generated QR code"
-                        />
-                    </div>
-                    <label>
-                        QR Data
-                        <textarea
-                            value={qrData}
-                            onChange={(e) => setQrData(e.target.value)}
-                            placeholder="Paste full QR payload or scan"
-                            rows={4}
-                        />
-                    </label>
-                    <div className="button-row">
+                        <h2 className="text-2xl font-bold text-emerald-900 mb-2">Payment Received!</h2>
+                        <p className="text-emerald-700 text-lg mb-6">
+                            Received ₹{Number(receivedAmount ?? amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })} successfully.
+                        </p>
                         <button
                             type="button"
-                            onClick={() =>
-                                navigator.clipboard.writeText(
-                                    generatedQR.qrData,
-                                )
-                            }
-                            className="secondary-button"
+                            onClick={() => {
+                                setPaymentSuccess(false);
+                                setGeneratedQR(null);
+                                setAmount("");
+                                setStep("generate");
+                            }}
+                            className="px-6 py-2.5 bg-[#0d6b5f] hover:bg-[#094d45] text-white font-bold rounded-xl transition-colors duration-200"
                         >
-                            Copy QR payload
+                            Done
                         </button>
+                    </section>
+                )}
+
+                {step === "generate" && !paymentSuccess && (
+                    <section className="panel">
+                        <h2>Generate QR Code</h2>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Amount
+                            <div style={{ position: "relative", marginTop: "0.25rem" }}>
+                                <span style={{
+                                    position: "absolute",
+                                    left: "0.85rem",
+                                    top: "50%",
+                                    transform: "translateY(-50%)",
+                                    color: "#6b7280",
+                                    fontWeight: 600,
+                                    pointerEvents: "none",
+                                    zIndex: 1,
+                                    lineHeight: 1,
+                                }}>
+                                    ₹
+                                </span>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={amount}
+                                    onChange={(e) => setAmount(e.target.value)}
+                                    placeholder="Enter amount"
+                                    style={{ paddingLeft: "2rem", marginBottom: 0 }}
+                                />
+                            </div>
+                        </label>
                         <button
                             type="button"
-                            onClick={handleValidateQR}
+                            onClick={handleGenerateQR}
+                            disabled={loading}
+                            className="w-full mt-4"
+                        >
+                            {loading ? "Generating..." : "Generate QR"}
+                        </button>
+                    </section>
+                )}
+
+                {step === "validate" && generatedQR && !paymentSuccess && (
+                    <section className="panel flex flex-col items-center text-center">
+                        <h2 className="text-xl font-bold mb-4">Scan to Pay</h2>
+                        
+                        <div className="mb-4">
+                            <p className="text-3xl font-extrabold text-[#0d6b5f]">
+                                ₹{Number(generatedQR.amount || amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                                Expires: {new Date(generatedQR.expiresAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "numeric" })}
+                            </p>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center mb-4">
+                            <img
+                                src={generatedQR.qrImage}
+                                alt="Generated QR code"
+                                style={{ display: "block", width: 192, height: 192, border: "none", borderRadius: 0 }}
+                            />
+                        </div>
+
+                        <div className="flex items-center justify-center gap-2 text-gray-500 text-xs mb-6">
+                            <svg className="animate-spin h-4 w-4 text-[#0d6b5f]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>Waiting for payment...</span>
+                        </div>
+
+                        <div className="w-full flex flex-col gap-2">
+                            <button
+                                type="button"
+                                onClick={handleShareQR}
+                                className="w-full py-3 bg-[#0d6b5f] hover:bg-[#094d45] text-white font-bold rounded-xl transition-colors duration-200"
+                            >
+                                Share QR Code
+                            </button>
+                            
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setGeneratedQR(null);
+                                    setStep("generate");
+                                }}
+                                style={{
+                                    width: "100%",
+                                    padding: "0.75rem",
+                                    borderRadius: "12px",
+                                    background: "transparent",
+                                    border: "1.5px solid #d1d5db",
+                                    color: "#6b7280",
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                    fontSize: "0.95rem",
+                                    transition: "border-color 0.15s, color 0.15s",
+                                }}
+                            >
+                                Reset
+                            </button>
+                        </div>
+                    </section>
+                )}
+
+                {step === "send" && validatedQR && (
+                    <section className="panel">
+                        <h2>Send Payment</h2>
+                        <label>
+                            Receiver ID
+                            <input
+                                type="number"
+                                value={String(sendReceiverId || "")}
+                                readOnly
+                            />
+                        </label>
+                        <label>
+                            Amount (INR)
+                            <input
+                                type="number"
+                                min="1"
+                                value={sendAmount}
+                                onChange={(e) => setSendAmount(e.target.value)}
+                            />
+                        </label>
+                        <button
+                            type="button"
+                            onClick={handleConfirmPayment}
                             disabled={loading}
                         >
-                            {loading ? "Validating..." : "Validate QR"}
+                            {loading ? "Processing..." : "Confirm Payment"}
                         </button>
-                    </div>
-                </section>
-            )}
+                    </section>
+                )}
 
-            {step === "send" && validatedQR && (
-                <section className="panel">
-                    <h2>Send Payment</h2>
-                    <label>
-                        Receiver ID
-                        <input
-                            type="number"
-                            value={String(sendReceiverId || "")}
-                            readOnly
-                        />
-                    </label>
-                    <label>
-                        Amount (INR)
-                        <input
-                            type="number"
-                            min="1"
-                            value={sendAmount}
-                            onChange={(e) => setSendAmount(e.target.value)}
-                        />
-                    </label>
-                    <button
-                        type="button"
-                        onClick={handleConfirmPayment}
-                        disabled={loading}
-                    >
-                        {loading ? "Processing..." : "Confirm Payment"}
-                    </button>
-                </section>
-            )}
-
-            {step === "confirm" && validatedQR && (
-                <section className="panel">
-                    <h2>Confirm Payment</h2>
-                    <p>Amount: INR {validatedQR.amount}</p>
-                    <p className="muted-panel">
-                        {validatedQR.isValid
-                            ? "QR is valid and ready to confirm"
-                            : "QR validation failed"}
-                    </p>
-                    <button
-                        type="button"
-                        onClick={handleConfirmPayment}
-                        disabled={loading || !validatedQR.isValid}
-                    >
-                        {loading ? "Processing..." : "Confirm Payment"}
-                    </button>
-                </section>
-            )}
+                {step === "confirm" && validatedQR && (
+                    <section className="panel">
+                        <h2>Confirm Payment</h2>
+                        <p>Amount: INR {validatedQR.amount}</p>
+                        <p className="muted-panel">
+                            {validatedQR.isValid
+                                ? "QR is valid and ready to confirm"
+                                : "QR validation failed"}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleConfirmPayment}
+                            disabled={loading || !validatedQR.isValid}
+                        >
+                            {loading ? "Processing..." : "Confirm Payment"}
+                        </button>
+                    </section>
+                )}
+            </div>
         </main>
     );
 }

@@ -6,6 +6,7 @@ import {
     getCategories,
 } from "../categories.api";
 import type { Category } from "../categories.types";
+import { ConfirmationModal } from "../../../shared/components/ConfirmationModal";
 
 export function CategoriesPage() {
     const [categories, setCategories] = useState<Category[]>([]);
@@ -14,6 +15,8 @@ export function CategoriesPage() {
     const [categoryName, setCategoryName] = useState("");
     const [categoryType, setCategoryType] = useState("EXPENSE");
     const [processing, setProcessing] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
     const fetchCategories = useCallback(async () => {
         try {
@@ -61,16 +64,20 @@ export function CategoriesPage() {
         }
     };
 
-    const handleDeleteCategory = async (categoryId: string) => {
-        if (!confirm("Are you sure you want to delete this category?")) {
-            return;
-        }
+    const requestDeleteCategory = (categoryId: string) => {
+        setCategoryToDelete(categoryId);
+        setIsDeleteModalOpen(true);
+    };
 
+    const handleDeleteCategory = async () => {
+        if (!categoryToDelete) return;
+
+        setIsDeleteModalOpen(false);
         setProcessing(true);
         setError("");
 
         try {
-            await deleteCategory(categoryId);
+            await deleteCategory(categoryToDelete);
             await fetchCategories();
         } catch (err) {
             setError(
@@ -78,7 +85,13 @@ export function CategoriesPage() {
             );
         } finally {
             setProcessing(false);
+            setCategoryToDelete(null);
         }
+    };
+
+    const cancelDeleteCategory = () => {
+        setIsDeleteModalOpen(false);
+        setCategoryToDelete(null);
     };
 
     if (loading) {
@@ -86,6 +99,7 @@ export function CategoriesPage() {
     }
 
     return (
+        <>
         <main className="app-page">
             <header className="page-header">
                 <div>
@@ -146,7 +160,7 @@ export function CategoriesPage() {
                                     <button
                                         type="button"
                                         onClick={() =>
-                                            handleDeleteCategory(
+                                            requestDeleteCategory(
                                                 category.id,
                                             )
                                         }
@@ -161,5 +175,16 @@ export function CategoriesPage() {
                 )}
             </section>
         </main>
+
+            <ConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={cancelDeleteCategory}
+                onConfirm={handleDeleteCategory}
+                title="Delete Category?"
+                description="Are you sure you want to delete this category? This action cannot be undone."
+                confirmText="Delete Category"
+                isProcessing={processing}
+            />
+        </>
     );
 }

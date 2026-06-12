@@ -179,24 +179,56 @@ export const QRScanner: React.FC<Props> = ({ onDetected, onClose }) => {
 
     return (
         <div className="scanner-modal">
-            <div className="scanner-controls">
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="secondary-button"
-                >
-                    Close
-                </button>
-            </div>
-
             {cameraAvailable ? (
-                <>
+                <div className="relative w-full overflow-hidden rounded-xl bg-black shadow-inner">
                     <video
                         ref={videoRef}
-                        style={{ width: "100%", borderRadius: 12 }}
+                        className="w-full h-auto block"
+                        style={{ borderRadius: 12 }}
                     />
+                    {/* Visual Reticle Overlay */}
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                        {/* Semi-transparent dark overlay border */}
+                        <div className="absolute inset-0 bg-black/40" />
+                        
+                        {/* Clear center square reticle */}
+                        <div className="relative w-48 h-48 sm:w-64 sm:h-64 border-2 border-white/80 rounded-2xl bg-transparent shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] flex items-center justify-center">
+                            {/* Four corner brackets to highlight the scan area */}
+                            <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl-md" />
+                            <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr-md" />
+                            <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl-md" />
+                            <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br-md" />
+                            
+                            <span className="text-white/80 text-xs font-bold px-3 py-1.5 bg-black/55 rounded-full select-none tracking-wider uppercase">
+                                Align QR Code
+                            </span>
+                        </div>
+                    </div>
+                    {/* Close button — absolute top-right, above the overlay */}
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        style={{
+                            position: "absolute",
+                            top: "0.6rem",
+                            right: "0.6rem",
+                            zIndex: 20,
+                            background: "rgba(0,0,0,0.55)",
+                            border: "none",
+                            color: "#ffffff",
+                            borderRadius: "999px",
+                            padding: "0.3rem 0.85rem",
+                            fontSize: "0.8rem",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            backdropFilter: "blur(4px)",
+                            letterSpacing: "0.02em",
+                        }}
+                    >
+                        Close
+                    </button>
                     <canvas ref={canvasRef} style={{ display: "none" }} />
-                </>
+                </div>
             ) : (
                 <section>
                     <p>

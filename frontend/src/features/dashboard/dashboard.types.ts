@@ -19,3 +19,7 @@ export type UpcomingLiabilitiesResponse = {
     upcomingLiabilities: Subscription[];
     totalAmount: number;
 };
+
+export type FinancialInsightsResponse = {
+    insight: string;
+};

@@ -8,6 +8,7 @@ import { getWalletTransactions } from "../../wallet/wallet.api";
 import type { WalletTransaction } from "../../wallet/wallet.types";
 import { getApiErrorMessage } from "../../../shared/api/errors";
 import { UpcomingBills } from "./UpcomingBills";
+import { FinancialRoast } from "./FinancialRoast";
 
 const formatInr = (value: number | string) => {
     const amount = Number(value);
@@ -98,6 +99,8 @@ export function Dashboard() {
                     {user?.name ? `${user.name.split(" ")[0]}'s overview` : "Overview"}
                 </h1>
             </header>
+
+            <FinancialRoast />
 
             {error ? (
                 <p className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">

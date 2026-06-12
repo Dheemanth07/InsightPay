@@ -34,5 +34,6 @@ app.use("/transactions", transactionRoutes);
 app.use("/categories", categoryRoutes);
 
 app.use("/analytics", analyticsRoutes);
+app.use("/api/v1/analytics", analyticsRoutes);
 
 export default app;

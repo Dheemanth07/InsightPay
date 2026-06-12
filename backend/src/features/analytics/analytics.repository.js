@@ -62,3 +62,44 @@ export const createSubscription = (data) => {
         },
     });
 };
+
+export const getSpendingGroupedByCategory = async (userId, startDate) => {
+    const transactions = await prisma.transaction.findMany({
+        where: {
+            fromUserId: userId,
+            status: "SUCCESS",
+            createdAt: {
+                gte: startDate,
+            },
+            category: {
+                type: "EXPENSE",
+            },
+        },
+        include: {
+            category: {
+                select: {
+                    id: true,
+                    name: true,
+                },
+            },
+        },
+    });
+
+    const categoryMap = {};
+    let totalSpending = 0;
+
+    transactions.forEach((tx) => {
+        const catName = tx.category ? tx.category.name : "Uncategorized";
+        const amount = Number(tx.amount) || 0;
+        categoryMap[catName] = (categoryMap[catName] || 0) + amount;
+        totalSpending += amount;
+    });
+
+    return {
+        totalSpending,
+        categories: Object.entries(categoryMap).map(([category, amount]) => ({
+            category,
+            amount,
+        })),
+    };
+};

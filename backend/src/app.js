@@ -8,6 +8,7 @@ import qrRoutes from "./features/qr/qr.routes.js";
 import transactionRoutes from "./features/transactions/transaction.routes.js";
 import categoryRoutes from "./features/categories/category.routes.js";
 import analyticsRoutes from "./features/analytics/analytics.routes.js";
+import splitRoutes from "./features/splits/split.routes.js";
 
 const app = express();
 
@@ -35,5 +36,7 @@ app.use("/categories", categoryRoutes);
 
 app.use("/analytics", analyticsRoutes);
 app.use("/api/v1/analytics", analyticsRoutes);
+
+app.use("/splits", splitRoutes);
 
 export default app;

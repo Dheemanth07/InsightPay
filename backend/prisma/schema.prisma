@@ -23,11 +23,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sentTransactions     Transaction[] @relation("SentTransactions")
-  receivedTransactions Transaction[] @relation("ReceivedTransactions")
-  cards                Card[]
-  categories           Category[]
-  subscriptions        Subscription[]
+  sentTransactions      Transaction[]  @relation("SentTransactions")
+  receivedTransactions  Transaction[]  @relation("ReceivedTransactions")
+  cards                 Card[]
+  categories            Category[]
+  subscriptions         Subscription[]
+  splitRequestsSent     SplitRequest[] @relation("SplitRequester")
+  splitRequestsReceived SplitRequest[] @relation("SplitPayer")
 }
 
 // Transaction Model
@@ -54,6 +56,7 @@ model Transaction {
 
   createdAt DateTime  @default(now())
   updatedAt DateTime?
+  splits    SplitRequest[]
 
   @@index([fromUserId])
   @@index([toUserId])
@@ -148,4 +151,30 @@ model Subscription {
 enum BillingCycle {
   MONTHLY
   YEARLY
+}
+
+// SplitRequest Model
+model SplitRequest {
+  id            String      @id @default(uuid())
+  transactionId Int
+  requesterId   Int
+  payerId       Int
+  amountOwed    Decimal
+  status        SplitStatus @default(PENDING)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  transaction Transaction @relation(fields: [transactionId], references: [id])
+  requester   User        @relation("SplitRequester", fields: [requesterId], references: [id])
+  payer       User        @relation("SplitPayer", fields: [payerId], references: [id])
+
+  @@index([transactionId])
+  @@index([requesterId])
+  @@index([payerId])
+}
+
+enum SplitStatus {
+  PENDING
+  PAID
+  REJECTED
 }

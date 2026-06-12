@@ -2,6 +2,8 @@ import {
     getUserProfile,
     loginUser,
     registerUser,
+    getFrequentContactsList,
+    searchUsersList as searchUsersService,
 } from "./auth.service.js";
 
 export const register = async (req, res) => {
@@ -68,6 +70,31 @@ export const getMe = async (req, res) => {
         return res.status(200).json(user);
     } catch (err) {
         console.error("Error retrieving user details:", err);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const getUsersSuggestions = async (req, res) => {
+    try {
+        const users = await getFrequentContactsList(req.user.id);
+        return res.status(200).json({ users });
+    } catch (err) {
+        console.error("Error retrieving suggested users:", err);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const getUsersSearchList = async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q || q.trim().length < 2) {
+            return res.status(400).json({ message: "Search query must be at least 2 characters long" });
+        }
+
+        const users = await searchUsersService(req.user.id, q.trim());
+        return res.status(200).json({ users });
+    } catch (err) {
+        console.error("Error searching users:", err);
         return res.status(500).json({ message: "Internal server error" });
     }
 };

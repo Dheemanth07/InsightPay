@@ -7,6 +7,7 @@ import {
     updateTransactionCategory,
 } from "../transactions.api";
 import type { Transaction } from "../transactions.types";
+import { SplitBillModal } from "../components/SplitBillModal";
 
 const MONTH_LABEL_OPTIONS: Intl.DateTimeFormatOptions = {
     month: "long",
@@ -110,6 +111,7 @@ export function TransactionsPage() {
     const [updatingCategoryId, setUpdatingCategoryId] = useState<number | null>(
         null,
     );
+    const [splitTransaction, setSplitTransaction] = useState<Transaction | null>(null);
     const [search, setSearch] = useState("");
     const [filterOpen, setFilterOpen] = useState(false);
     const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
@@ -577,6 +579,23 @@ export function TransactionsPage() {
                                                     </select>
                                                 </label>
                                             )}
+                                            {transaction.status === "SUCCESS" && transaction.type !== "DEPOSIT" && (
+                                                <button
+                                                    type="button"
+                                                    className="secondary-button"
+                                                    onClick={() => setSplitTransaction(transaction)}
+                                                    style={{ 
+                                                        marginTop: "0.75rem", 
+                                                        padding: "0.45rem 1rem", 
+                                                        fontSize: "0.8rem", 
+                                                        borderRadius: "999px",
+                                                        display: "block",
+                                                        width: "fit-content"
+                                                    }}
+                                                >
+                                                    Split this bill
+                                                </button>
+                                            )}
                                         </div>
                                         <strong
                                             className={
@@ -598,6 +617,13 @@ export function TransactionsPage() {
                         </section>
                     );
                 })
+            )}
+
+            {splitTransaction && (
+                <SplitBillModal
+                    transaction={splitTransaction}
+                    onClose={() => setSplitTransaction(null)}
+                />
             )}
         </main>
     );

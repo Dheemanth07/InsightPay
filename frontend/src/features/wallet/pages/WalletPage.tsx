@@ -7,6 +7,12 @@ import {
     sendMoney,
     withdrawMoney,
 } from "../wallet.api";
+import {
+    getIncomingPendingSplits,
+    paySplitShare,
+    rejectSplitShare,
+} from "../../transactions/splits.api";
+import type { SplitRequest } from "../../transactions/splits.api";
 
 export function WalletPage() {
     const [balance, setBalance] = useState<number>(0);
@@ -18,12 +24,17 @@ export function WalletPage() {
     const [withdrawAmount, setWithdrawAmount] = useState("");
     const [processing, setProcessing] = useState(false);
     const [actionError, setActionError] = useState("");
+    const [pendingSplits, setPendingSplits] = useState<SplitRequest[]>([]);
 
     const fetchWalletData = useCallback(async () => {
         try {
             setLoading(true);
-            const userResponse = await getWalletOwner();
+            const [userResponse, splitsResponse] = await Promise.all([
+                getWalletOwner(),
+                getIncomingPendingSplits(),
+            ]);
             setBalance(Number(userResponse.data.balance || 0));
+            setPendingSplits(splitsResponse.data.splits || []);
         } catch (err) {
             setError(
                 getApiErrorMessage(
@@ -125,6 +136,48 @@ export function WalletPage() {
         }
     };
 
+    const handlePaySplitShare = async (splitId: string, amount: number) => {
+        if (amount > balance) {
+            toast.error("Insufficient wallet balance to pay split share.");
+            return;
+        }
+
+        setProcessing(true);
+        setActionError("");
+
+        try {
+            setBalance((currentBalance) => currentBalance - amount);
+            await paySplitShare(splitId);
+            toast.success("Split paid successfully!");
+            await fetchWalletData();
+        } catch (err) {
+            const message = getApiErrorMessage(err, "Failed to pay split share");
+            setActionError(message);
+            toast.error("Failed to pay split share. Please try again.");
+            await fetchWalletData();
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleRejectSplitShare = async (splitId: string) => {
+        setProcessing(true);
+        setActionError("");
+
+        try {
+            await rejectSplitShare(splitId);
+            toast.success("Split request rejected.");
+            await fetchWalletData();
+        } catch (err) {
+            const message = getApiErrorMessage(err, "Failed to reject split request");
+            setActionError(message);
+            toast.error("Failed to reject split request.");
+            await fetchWalletData();
+        } finally {
+            setProcessing(false);
+        }
+    };
+
     if (loading) {
         return <p className="page-status">Loading wallet...</p>;
     }
@@ -146,6 +199,76 @@ export function WalletPage() {
                 <p>Current Balance</p>
                 <h2>INR {balance.toFixed(2)}</h2>
             </section>
+
+            {pendingSplits.length > 0 && (
+                <section className="panel" style={{ border: "1px solid #edf1f3", backgroundColor: "#fafbfc" }}>
+                    <h2 style={{ fontSize: "1.1rem", fontWeight: 800, color: "#0f1419", marginBottom: "1rem" }}>
+                        Pending Splits
+                    </h2>
+                    <div className="transaction-list" style={{ display: "grid", gap: "0.75rem" }}>
+                        {pendingSplits.map((split) => (
+                            <div 
+                                key={split.id} 
+                                className="transaction-row" 
+                                style={{ 
+                                    display: "flex", 
+                                    alignItems: "center", 
+                                    justifyContent: "space-between",
+                                    padding: "1rem 1.25rem",
+                                    borderRadius: "14px",
+                                    border: "1px solid #edf1f3",
+                                    backgroundColor: "#ffffff"
+                                }}
+                            >
+                                <div style={{ minWidth: 0, flex: 1, paddingRight: "1rem" }}>
+                                    <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: 700, color: "#1e293b" }}>
+                                        {split.requester?.name} requested a split
+                                    </p>
+                                    <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: "#6b7280" }}>
+                                        Original txn: {split.transaction.type} • {split.transaction.category?.name || "Uncategorized"}
+                                    </p>
+                                </div>
+                                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                                    <strong style={{ fontSize: "0.95rem", color: "#b42318", fontWeight: 800 }}>
+                                        INR {Number(split.amountOwed).toFixed(2)}
+                                    </strong>
+                                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => handlePaySplitShare(split.id, Number(split.amountOwed))}
+                                            disabled={processing}
+                                            style={{
+                                                padding: "0.45rem 1rem",
+                                                borderRadius: "999px",
+                                                fontSize: "0.8rem",
+                                                margin: 0
+                                            }}
+                                        >
+                                            Pay
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="secondary-button"
+                                            onClick={() => handleRejectSplitShare(split.id)}
+                                            disabled={processing}
+                                            style={{
+                                                padding: "0.45rem 1rem",
+                                                borderRadius: "999px",
+                                                fontSize: "0.8rem",
+                                                border: "1px solid #b42318",
+                                                color: "#b42318",
+                                                margin: 0
+                                            }}
+                                        >
+                                            Reject
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {actionError && <p className="error-text">{actionError}</p>}
 

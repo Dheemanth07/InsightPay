@@ -18,5 +18,5 @@ export const insightsRateLimiter = rateLimit({
     },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => String(req.user?.id || req.ip),
+    keyGenerator: (req) => String(req.user?.id || "anonymous"),
 });

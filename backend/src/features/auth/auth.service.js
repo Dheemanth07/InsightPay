@@ -5,6 +5,8 @@ import {
     createUser,
     findUserByEmail,
     findUserProfileById,
+    getFrequentContacts,
+    searchUsers,
 } from "./auth.repository.js";
 
 export const registerUser = async ({ name, email, password }) => {
@@ -42,4 +44,12 @@ export const loginUser = async ({ email, password }) => {
 
 export const getUserProfile = (userId) => {
     return findUserProfileById(userId);
+};
+
+export const getFrequentContactsList = (userId) => {
+    return getFrequentContacts(userId);
+};
+
+export const searchUsersList = (currentUserId, query) => {
+    return searchUsers(currentUserId, query);
 };

@@ -386,6 +386,36 @@ function NetworkLogo({ brand, theme }: { brand: string; theme: Theme }) {
 }
 
 
+const formatCardholderName = (name: string): string => {
+    const cleaned = name.trim().toUpperCase();
+    if (!cleaned) return "CARDHOLDER";
+    if (cleaned.length <= 14) return cleaned;
+
+    const parts = cleaned.split(/\s+/);
+    if (parts.length === 1) {
+        return parts[0].slice(0, 14);
+    }
+
+    const firstName = parts[0];
+    const lastName = parts[parts.length - 1];
+
+    // Try First Name + Last Name (without middle names)
+    const firstLast = `${firstName} ${lastName}`;
+    if (firstLast.length <= 14) {
+        return firstLast;
+    }
+
+    // Try First Name + Last Initial
+    const firstInitial = `${firstName} ${lastName[0]}.`;
+    if (firstInitial.length <= 14) {
+        return firstInitial;
+    }
+
+    // If still too long, truncate first name and add last initial
+    const maxFirstLength = 14 - 3; // firstName + " " + "X."
+    return `${firstName.slice(0, maxFirstLength)} ${lastName[0]}.`;
+};
+
 export function CreditCard({
     brand,
     issuerBank,
@@ -398,7 +428,7 @@ export function CreditCard({
     const last4 = safeLastFour(lastFour);
     const expiry = formatExpiry(expiryMonth, expiryYear);
     const maskedNumber = `•••• •••• •••• ${last4}`;
-    const holderName = userName.trim().toUpperCase() || "CARDHOLDER";
+    const holderName = formatCardholderName(userName);
 
     const cardStyles: Record<Theme, CSSProperties> = {
         axis: {
@@ -588,7 +618,7 @@ export function CreditCard({
                     fontSize: 16,
                     fontWeight: 700,
                     letterSpacing: 1.6,
-                    maxWidth: 180,
+                    maxWidth: 160,
                     ...textShadow,
                 }}
             >

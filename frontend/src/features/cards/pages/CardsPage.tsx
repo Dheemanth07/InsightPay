@@ -321,7 +321,7 @@ export function CardsPage() {
                                 type="button"
                                 onClick={() => requestDeleteCard(cards[activeIndex].id)}
                                 disabled={processing}
-                                className="text-xs font-semibold text-[#6b7280] hover:text-red-600 transition-colors bg-transparent border-none px-0 cursor-pointer"
+                                className="text-xs font-semibold text-red-600 bg-white border border-red-500/40 hover:bg-red-50/50 hover:border-red-600 px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-sm"
                             >
                                 Remove Card
                             </button>
@@ -386,8 +386,8 @@ export function CardsPage() {
                                         type="button"
                                         onClick={() => setActiveIndex(index)}
                                         className={`h-2.5 rounded-full transition-all duration-300 ${
-                                            index === activeIndex ? "bg-[#0d6b5f] w-6" : "bg-white border border-[#0d6b5f] w-4 opacity-50 hover:opacity-100"
-                                        } border-0 p-0 m-0 cursor-pointer`}
+                                            index === activeIndex ? "bg-[#0d6b5f] w-6" : "bg-[#0d6b5f]/30 w-4 hover:bg-[#0d6b5f]/60"
+                                        } p-0 m-0 border-0 cursor-pointer`}
                                         aria-label={`Go to slide ${index + 1}`}
                                     />
                                 ))}

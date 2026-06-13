@@ -11,11 +11,13 @@ import { CategoriesPage } from "../features/categories/pages/CategoriesPage";
 import { CardsPage } from "../features/cards/pages/CardsPage";
 import { QRPage } from "../features/qr/pages/QRPage";
 import { TopNavLayout } from "../shared/components/TopNavLayout";
+import { LandingPage } from "../features/landing/pages/LandingPage";
 
 export function App() {
     return (
         <>
             <Routes>
+                <Route path="/" element={<LandingPage />} />
                 <Route path="/signup" element={<SignupPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route

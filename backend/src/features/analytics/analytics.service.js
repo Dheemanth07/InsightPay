@@ -17,17 +17,14 @@ export const getUpcomingLiabilitiesForUser = async (userId) => {
     return { upcomingLiabilities: upcoming, totalAmount };
 };
 // ─────────────────────────────────────────────
-// Create a new user subscription
-// ─────────────────────────────────────────────
 export const addUserSubscription = async (userId, { name, amount, dueDate, cardId }) => {
     return createSubscription({
         userId,
         cardId,
-        name,
-        merchantName: name,              // keep legacy field in sync
+        merchantName: name,
         amount: parseFloat(amount),
-        dueDate: new Date(dueDate),
-        nextBillingDate: new Date(dueDate), // keep legacy field in sync
+        nextBillingDate: new Date(dueDate),
+        billingCycle: "MONTHLY",
     });
 };
 // ─────────────────────────────────────────────

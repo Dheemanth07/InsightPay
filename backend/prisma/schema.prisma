@@ -135,7 +135,7 @@ model Subscription {
   cardId          String
   merchantName    String
   amount          Decimal
-  billingCycle    BillingCycle
+  billingCycle    BillingCycle @default(MONTHLY)
   nextBillingDate DateTime
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt

@@ -20,7 +20,7 @@ export const getUpcomingSubscriptions = (userId, startDate, endDate) => {
     return prisma.subscription.findMany({
         where: {
             userId,
-            dueDate: {
+            nextBillingDate: {
                 gte: startDate,
                 lte: endDate,
             },
@@ -38,7 +38,7 @@ export const getUpcomingSubscriptions = (userId, startDate, endDate) => {
             },
         },
         orderBy: {
-            dueDate: "asc",
+            nextBillingDate: "asc",
         },
     });
 };

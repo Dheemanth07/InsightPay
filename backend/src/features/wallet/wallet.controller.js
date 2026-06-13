@@ -4,6 +4,7 @@ import {
     sendMoneyService,
     withdrawMoneyService,
 } from "./wallet.service.js";
+import logger from "../../utils/logger.js";
 
 export const addMoney = async (req, res) => {
     try {
@@ -20,7 +21,7 @@ export const addMoney = async (req, res) => {
             balance: result.balance,
         });
     } catch (err) {
-        console.error("Add money error:", err);
+        logger.error({ err }, "Add money error");
         return res.status(500).json({ message: "Failed to add money" });
     }
 };
@@ -52,7 +53,7 @@ export const sendMoney = async (req, res) => {
             balance: result.senderBalance,
         });
     } catch (err) {
-        console.error("Send money error:", err);
+        logger.error({ err }, "Send money error");
         return res
             .status(500)
             .json({ message: err.message || "Failed to send money" });
@@ -74,7 +75,7 @@ export const withdrawMoney = async (req, res) => {
             balance: result.balance,
         });
     } catch (err) {
-        console.error("Withdraw money error:", err);
+        logger.error({ err }, "Withdraw money error");
         return res
             .status(500)
             .json({ message: err.message || "Failed to withdraw money" });
@@ -97,7 +98,7 @@ export const getTransactionHistory = async (req, res) => {
             result,
         });
     } catch (err) {
-        console.error("History API error:", err);
+        logger.error({ err }, "History API error");
         return res
             .status(500)
             .json({ message: "Failed to fetch transaction history" });

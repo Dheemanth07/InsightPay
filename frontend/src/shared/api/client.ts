@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const DEFAULT_API_HOST = (() => {
+const DEFAULT_API_HOST = import.meta.env.VITE_API_URL || (() => {
     if (
         typeof window !== "undefined" &&
         window.location &&

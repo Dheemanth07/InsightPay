@@ -3,6 +3,8 @@ import {
     createSubscription,
     getSpendingGroupedByCategory,
 } from "./analytics.repository.js";
+import logger from "../../utils/logger.js";
+
 // ─────────────────────────────────────────────
 // Upcoming liabilities (user-driven, 7-day window)
 // ─────────────────────────────────────────────
@@ -80,15 +82,16 @@ Roast my spending and give me one clear action item.`;
                     }),
                 }
             );
+
             if (response.ok) {
                 const data = await response.json();
                 const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
                 if (text) return text;
             } else {
-                console.error("Gemini API request failed:", response.statusText);
+                logger.error({ statusText: response.statusText }, "Gemini API request failed");
             }
         } catch (err) {
-            console.error("Error communicating with Gemini API:", err);
+            logger.error({ err }, "Error communicating with Gemini API");
         }
     }
     if (process.env.OPENAI_API_KEY) {
@@ -114,10 +117,10 @@ Roast my spending and give me one clear action item.`;
                 const text = data.choices?.[0]?.message?.content?.trim();
                 if (text) return text;
             } else {
-                console.error("OpenAI API request failed:", response.statusText);
+                logger.error({ statusText: response.statusText }, "OpenAI API request failed");
             }
         } catch (err) {
-            console.error("Error communicating with OpenAI API:", err);
+            logger.error({ err }, "Error communicating with OpenAI API");
         }
     }
     return generateMockRoast(totalSpending, categories);

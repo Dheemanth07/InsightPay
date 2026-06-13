@@ -5,6 +5,7 @@ import {
     getFrequentContactsList,
     searchUsersList as searchUsersService,
 } from "./auth.service.js";
+import logger from "../../utils/logger.js";
 
 export const register = async (req, res) => {
     try {
@@ -30,7 +31,7 @@ export const register = async (req, res) => {
             .status(201)
             .json({ message: "User registered successfully", user });
     } catch (err) {
-        console.error("Error during registration:", err);
+        logger.error({ err }, "Error during registration");
         return res
             .status(err.statusCode || 500)
             .json({ message: err.message || "Internal server error" });
@@ -56,7 +57,7 @@ export const login = async (req, res) => {
             ...result,
         });
     } catch (err) {
-        console.error("Login error:", err);
+        logger.error({ err }, "Login error");
         return res
             .status(err.statusCode || 500)
             .json({ message: err.message || "Internal server error" });
@@ -69,7 +70,7 @@ export const getMe = async (req, res) => {
 
         return res.status(200).json(user);
     } catch (err) {
-        console.error("Error retrieving user details:", err);
+        logger.error({ err }, "Error retrieving user details");
         return res.status(500).json({ message: "Internal server error" });
     }
 };
@@ -79,7 +80,7 @@ export const getUsersSuggestions = async (req, res) => {
         const users = await getFrequentContactsList(req.user.id);
         return res.status(200).json({ users });
     } catch (err) {
-        console.error("Error retrieving suggested users:", err);
+        logger.error({ err }, "Error retrieving suggested users");
         return res.status(500).json({ message: "Internal server error" });
     }
 };
@@ -94,7 +95,7 @@ export const getUsersSearchList = async (req, res) => {
         const users = await searchUsersService(req.user.id, q.trim());
         return res.status(200).json({ users });
     } catch (err) {
-        console.error("Error searching users:", err);
+        logger.error({ err }, "Error searching users");
         return res.status(500).json({ message: "Internal server error" });
     }
 };

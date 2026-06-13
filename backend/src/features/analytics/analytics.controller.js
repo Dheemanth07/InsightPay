@@ -4,13 +4,15 @@ import {
     addUserSubscription,
 } from "./analytics.service.js";
 import prisma from "../../prisma.js";
+import logger from "../../utils/logger.js";
+
 export const getUpcomingLiabilities = async (req, res) => {
     try {
         const userId = req.user.id;
         const result = await getUpcomingLiabilitiesForUser(userId);
         return res.status(200).json(result);
     } catch (err) {
-        console.error("Error retrieving upcoming liabilities:", err);
+        logger.error({ err }, "Error retrieving upcoming liabilities");
         return res
             .status(err.statusCode || 500)
             .json({ message: err.message || "Internal server error" });
@@ -22,7 +24,7 @@ export const getFinancialInsights = async (req, res) => {
         const insight = await generateFinancialInsights(userId);
         return res.status(200).json({ insight });
     } catch (err) {
-        console.error("Error generating financial insights:", err);
+        logger.error({ err }, "Error generating financial insights");
         return res
             .status(err.statusCode || 500)
             .json({ message: err.message || "Internal server error" });
@@ -51,7 +53,7 @@ export const createSubscription = async (req, res) => {
         const subscription = await addUserSubscription(userId, { name, amount: parsedAmount, dueDate: parsedDate, cardId });
         return res.status(201).json(subscription);
     } catch (err) {
-        console.error("Error creating subscription:", err);
+        logger.error({ err }, "Error creating subscription");
         return res
             .status(err.statusCode || 500)
             .json({ message: err.message || "Internal server error" });
@@ -156,7 +158,7 @@ export const getDashboardAnalytics = async (req, res) => {
             categories
         });
     } catch (err) {
-        console.error("Error retrieving dashboard analytics:", err);
+        logger.error({ err }, "Error retrieving dashboard analytics");
         return res
             .status(err.statusCode || 500)
             .json({ message: err.message || "Internal server error" });

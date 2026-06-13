@@ -14,7 +14,26 @@ const app = express();
 
 app.disable("etag");
 
-app.use(cors());
+const allowedOrigins = [
+    process.env.FRONTEND_URL,             // Vercel Production Domain
+    "http://localhost:5173",              // Local Development
+];
+
+app.use(
+    cors({
+        origin: (origin, callback) => {
+            // Allow requests with no origin (like mobile apps or curl requests)
+            if (!origin) return callback(null, true);
+            if (allowedOrigins.indexOf(origin) === -1) {
+                const msg = "The CORS policy for this site does not allow access from the specified Origin.";
+                return callback(new Error(msg), false);
+            }
+            return callback(null, true);
+        },
+        credentials: true,
+    })
+);
+
 app.use(helmet());
 app.use(express.json());
 

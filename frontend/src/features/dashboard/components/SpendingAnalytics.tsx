@@ -21,7 +21,12 @@ const CATEGORY_COLORS: Record<string, string> = {
     "Travel": "bg-teal-500"
 };
 
-const customTooltip = (props: { active?: boolean; payload?: any[] }) => {
+interface TooltipPayloadItem {
+    payload: CategoryData;
+    color?: string;
+}
+
+const customTooltip = (props: { active?: boolean; payload?: TooltipPayloadItem[] }) => {
     const { payload, active } = props;
     if (!active || !payload || payload.length === 0) return null;
 
@@ -30,8 +35,8 @@ const customTooltip = (props: { active?: boolean; payload?: any[] }) => {
 
     return (
         <div className="rounded-lg bg-white p-3 shadow-lg ring-1 ring-gray-200 flex items-center gap-3">
-            <div 
-                className={`w-3 h-3 rounded-full shrink-0 ${colorMap[data.name] || 'bg-gray-400'}`} 
+            <div
+                className={`w-3 h-3 rounded-full shrink-0 ${colorMap[data.name] || 'bg-gray-400'}`}
             />
             <div className="flex flex-col">
                 <span className="text-sm font-medium text-gray-700">{data.name}</span>

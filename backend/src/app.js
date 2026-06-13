@@ -12,6 +12,9 @@ import splitRoutes from "./features/splits/split.routes.js";
 
 const app = express();
 
+// Trust reverse proxy (Render, Vercel) for rate limiting X-Forwarded-For headers
+app.set("trust proxy", 1);
+
 app.disable("etag");
 
 const allowedOrigins = [

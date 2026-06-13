@@ -4,6 +4,7 @@ import type {
     FinancialInsightsResponse,
     CreateSubscriptionPayload,
     Subscription,
+    DashboardAnalyticsResponse,
 } from "./dashboard.types";
 export const getUpcomingLiabilities = () => {
     return apiClient.get<UpcomingLiabilitiesResponse>("/analytics/upcoming");
@@ -13,4 +14,7 @@ export const getFinancialInsights = () => {
 };
 export const createSubscription = (payload: CreateSubscriptionPayload) => {
     return apiClient.post<Subscription>("/analytics/subscriptions", payload);
+};
+export const getDashboardAnalytics = () => {
+    return apiClient.get<DashboardAnalyticsResponse>("/api/analytics");
 };

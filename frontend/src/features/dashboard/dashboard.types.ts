@@ -27,3 +27,20 @@ export type CreateSubscriptionPayload = {
     dueDate: string; // ISO date string
     cardId: string;
 };
+
+export type CashFlowData = {
+    month: string;
+    Income: number;
+    Expenses: number;
+};
+
+export type CategoryData = {
+    name: string;
+    amount: number;
+};
+
+export type DashboardAnalyticsResponse = {
+    cashFlow: CashFlowData[];
+    categories: CategoryData[];
+};
+

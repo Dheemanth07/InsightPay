@@ -10,6 +10,10 @@ import { getApiErrorMessage } from "../../../shared/api/errors";
 import { UpcomingBills } from "./UpcomingBills";
 import { FinancialRoast } from "./FinancialRoast";
 import { Skeleton } from "../../../shared/components/Skeleton";
+import { CashFlowChart } from "./CashFlowChart";
+import { SpendingAnalytics } from "./SpendingAnalytics";
+import { getDashboardAnalytics } from "../dashboard.api";
+import type { CashFlowData, CategoryData } from "../dashboard.types";
 
 const formatInr = (value: number | string) => {
     const amount = Number(value);
@@ -53,8 +57,11 @@ export function Dashboard() {
     const { user } = useAuth();
     const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
     const [primaryCard, setPrimaryCard] = useState<Card | null>(null);
+    const [cashFlowData, setCashFlowData] = useState<CashFlowData[]>([]);
+    const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
     const [loadingTransactions, setLoadingTransactions] = useState(true);
     const [loadingCard, setLoadingCard] = useState(true);
+    const [loadingAnalytics, setLoadingAnalytics] = useState(true);
     const [error, setError] = useState("");
 
     const balance = Number(user?.balance ?? 0);
@@ -65,14 +72,18 @@ export function Dashboard() {
         try {
             setLoadingTransactions(true);
             setLoadingCard(true);
+            setLoadingAnalytics(true);
 
-            const [historyResponse, cardsResponse] = await Promise.all([
+            const [historyResponse, cardsResponse, analyticsResponse] = await Promise.all([
                 getWalletTransactions(null, 5),
                 getCards(),
+                getDashboardAnalytics(),
             ]);
 
             setTransactions(historyResponse.data.result?.transactions ?? []);
             setPrimaryCard(cardsResponse.data.cards?.[0] ?? null);
+            setCashFlowData(analyticsResponse.data.cashFlow ?? []);
+            setCategoryData(analyticsResponse.data.categories ?? []);
         } catch (err) {
             setError(
                 getApiErrorMessage(
@@ -83,6 +94,7 @@ export function Dashboard() {
         } finally {
             setLoadingTransactions(false);
             setLoadingCard(false);
+            setLoadingAnalytics(false);
         }
     }, []);
 
@@ -280,6 +292,20 @@ export function Dashboard() {
 
                 {/* Upcoming Bills Widget — bottom right */}
                 <UpcomingBills />
+            </div>
+
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                {loadingAnalytics ? (
+                    <>
+                        <Skeleton width="w-full" height="h-[380px]" rounded="rounded-[28px]" />
+                        <Skeleton width="w-full" height="h-[380px]" rounded="rounded-[28px]" />
+                    </>
+                ) : (
+                    <>
+                        <CashFlowChart data={cashFlowData} />
+                        <SpendingAnalytics data={categoryData} />
+                    </>
+                )}
             </div>
         </div>
     );

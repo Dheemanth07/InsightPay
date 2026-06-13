@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
-import { Zap, Split, BarChart2, ShieldCheck, ArrowRight, Wallet } from "lucide-react";
+import { Zap, Split, BarChart2, ShieldCheck, ArrowRight, Wallet, LogOut } from "lucide-react";
+import { useAuth } from "../../auth/auth.context";
+import { InsightPayLogo } from "../../../shared/components/InsightPayLogo";
 
 // ─── Inline Brand Icons (lucide-react v1+ removed brand icons) ────────────────
 
@@ -85,6 +87,8 @@ const stack = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function LandingPage() {
+    const { user, logout } = useAuth();
+
     return (
         <div className="min-h-screen bg-[#f4f7f8] font-[Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] text-[#172026]">
 
@@ -94,27 +98,49 @@ export function LandingPage() {
                     {/* Logo */}
                     <Link
                         to="/"
-                        className="flex items-center gap-0.5 tracking-tight hover:scale-[1.02] transition-transform duration-200 ease-out select-none no-underline"
+                        className="flex items-center gap-1.5 tracking-tight hover:scale-[1.02] transition-transform duration-200 ease-out select-none no-underline"
                     >
+                        <InsightPayLogo className="w-8 h-8" />
                         <span className="text-2xl font-extrabold text-[#0f1419]">Insight</span>
                         <span className="text-2xl font-medium text-[#0d6b5f]">Pay</span>
                     </Link>
 
                     {/* Right CTAs */}
                     <div className="flex items-center gap-3">
-                        <Link
-                            to="/login"
-                            className="text-sm font-semibold text-[#172026] hover:text-[#0d6b5f] transition-colors no-underline hidden sm:inline-flex"
-                        >
-                            Sign In
-                        </Link>
-                        <Link
-                            to="/signup"
-                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold text-white bg-[#0d6b5f] hover:bg-[#094d45] transition-colors no-underline shadow-sm"
-                        >
-                            Get Started
-                            <ArrowRight size={14} />
-                        </Link>
+                        {user ? (
+                            <>
+                                <Link
+                                    to="/dashboard"
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold text-white bg-[#0d6b5f] hover:bg-[#094d45] transition-colors no-underline shadow-sm"
+                                >
+                                    Dashboard
+                                    <ArrowRight size={14} />
+                                </Link>
+                                <button
+                                    onClick={logout}
+                                    className="inline-flex items-center justify-center p-2 rounded-full text-[#4d5c65] hover:text-[#0d6b5f] hover:bg-[#e6eaee] transition-colors"
+                                    title="Sign Out"
+                                >
+                                    <LogOut size={18} />
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <Link
+                                    to="/login"
+                                    className="text-sm font-semibold text-[#172026] hover:text-[#0d6b5f] transition-colors no-underline hidden sm:inline-flex"
+                                >
+                                    Sign In
+                                </Link>
+                                <Link
+                                    to="/signup"
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold text-white bg-[#0d6b5f] hover:bg-[#094d45] transition-colors no-underline shadow-sm"
+                                >
+                                    Get Started
+                                    <ArrowRight size={14} />
+                                </Link>
+                            </>
+                        )}
                     </div>
                 </nav>
             </header>
@@ -130,7 +156,7 @@ export function LandingPage() {
                         {/* Left: Copy */}
                         <div>
                             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold tracking-widest uppercase bg-[#0d6b5f]/10 text-[#0d6b5f] mb-6">
-                                Full-Stack Portfolio Project
+                                Open-Source FinTech Project
                             </span>
                             <h1 className="text-4xl sm:text-5xl font-extrabold text-[#0f1419] leading-[1.1] tracking-tight mb-5">
                                 Seamless P2P Payments &amp;{" "}
@@ -143,19 +169,32 @@ export function LandingPage() {
                                 modern full-stack architecture.
                             </p>
                             <div className="flex flex-wrap items-center gap-4">
-                                <Link
-                                    to="/signup"
-                                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-base font-bold text-white bg-[#0d6b5f] hover:bg-[#094d45] transition-colors no-underline shadow-sm"
-                                >
-                                    Create an Account
-                                    <ArrowRight size={16} />
-                                </Link>
-                                <Link
-                                    to="/login"
+                                {user ? (
+                                    <Link
+                                        to="/dashboard"
+                                        className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-base font-bold text-white bg-[#0d6b5f] hover:bg-[#094d45] transition-colors no-underline shadow-sm"
+                                    >
+                                        Launch Wallet
+                                        <ArrowRight size={16} />
+                                    </Link>
+                                ) : (
+                                    <Link
+                                        to="/signup"
+                                        className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-base font-bold text-white bg-[#0d6b5f] hover:bg-[#094d45] transition-colors no-underline shadow-sm"
+                                    >
+                                        Open Free Account
+                                        <ArrowRight size={16} />
+                                    </Link>
+                                )}
+                                <a
+                                    href="https://github.com/Dheemanth07/InsightPay"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-base font-semibold text-[#172026] bg-white border border-[#dce4e8] hover:border-[#0d6b5f] hover:text-[#0d6b5f] transition-colors no-underline shadow-sm"
                                 >
-                                    Sign In
-                                </Link>
+                                    <GithubIcon size={18} />
+                                    View on GitHub
+                                </a>
                             </div>
                         </div>
 
@@ -344,10 +383,10 @@ export function LandingPage() {
                             full feature set in minutes.
                         </p>
                         <Link
-                            to="/signup"
+                            to={user ? "/dashboard" : "/signup"}
                             className="relative inline-flex items-center gap-2 px-7 py-3 rounded-full text-sm font-bold text-[#0d6b5f] bg-white hover:bg-[#f0fdf4] transition-colors no-underline shadow-sm"
                         >
-                            Create an Account
+                            {user ? "Launch Wallet" : "Launch Wallet"}
                             <ArrowRight size={15} />
                         </Link>
                     </div>
@@ -359,7 +398,8 @@ export function LandingPage() {
                 <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
                     {/* Left */}
                     <div className="flex flex-col sm:items-start items-center gap-1 text-center sm:text-left">
-                        <div className="flex items-center gap-0.5">
+                        <div className="flex items-center gap-1.5">
+                            <InsightPayLogo className="w-5 h-5" />
                             <span className="text-base font-extrabold text-[#0f1419]">Insight</span>
                             <span className="text-base font-medium text-[#0d6b5f]">Pay</span>
                         </div>
@@ -382,7 +422,7 @@ export function LandingPage() {
                             <span>View source on GitHub</span>
                         </a>
                         <a
-                            href="https://linkedin.com"
+                            href="https://www.linkedin.com/in/dheemanth-d-522469291/"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-[#4d5c65] hover:text-[#0d6b5f] transition-colors"

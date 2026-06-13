@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/auth.context";
 import { Skeleton } from "./Skeleton";
+import { InsightPayLogo } from "./InsightPayLogo";
 
 const tabs = [
     { path: "/dashboard", label: "Dashboard" },
@@ -18,8 +19,10 @@ export function TopNavLayout() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleLogout = () => {
-        logout();
-        navigate("/login");
+        navigate("/");
+        setTimeout(() => {
+            logout();
+        }, 150);
     };
 
     return (
@@ -28,8 +31,9 @@ export function TopNavLayout() {
                 {/* Brand / Logo */}
                 <NavLink
                     to="/dashboard"
-                    className="flex items-center space-x-0.5 tracking-tight hover:scale-[1.02] transition-transform duration-200 ease-out select-none mr-4"
+                    className="flex items-center space-x-1.5 tracking-tight hover:scale-[1.02] transition-transform duration-200 ease-out select-none mr-4 no-underline"
                 >
+                    <InsightPayLogo className="w-8 h-8" />
                     <span className="text-2xl font-extrabold text-[#0f1419]">Insight</span>
                     <span className="text-2xl font-medium text-[#0d6b5f]">Pay</span>
                 </NavLink>

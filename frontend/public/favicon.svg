@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+    <!-- White background circular badge for dark browser tabs -->
+    <circle cx="256" cy="256" r="240" fill="#ffffff" />
+    
+    <!-- Green Dot (Insight) -->
+    <circle cx="187" cy="106" r="26" fill="#0d6b5f" />
+    
+    <!-- Green Stem (I) -->
+    <path d="M 161,168 h 52 v 90 a 52,52 0 0 1 -52,52 z" fill="#0d6b5f" />
+    
+    <!-- Dark Slate Shape (P) -->
+    <path d="M 213,168 H 281 A 70,70 0 0 1 351,238 A 70,70 0 0 1 281,308 H 213 V 432 H 161 V 330 A 52,52 0 0 1 213,278 V 168 Z M 213,220 V 256 H 281 A 18,18 0 0 0 281,220 H 213 Z" fill="#0f1419" />
+</svg>

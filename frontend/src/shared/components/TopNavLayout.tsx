@@ -26,9 +26,13 @@ export function TopNavLayout() {
         <div className="top-nav-layout">
             <div className="top-nav-bar flex items-center justify-between">
                 {/* Brand / Logo */}
-                <div className="flex items-center">
-                    <span className="text-xl font-black tracking-tight text-[#0d6b5f] mr-4">InsightPay</span>
-                </div>
+                <NavLink
+                    to="/dashboard"
+                    className="flex items-center space-x-0.5 tracking-tight hover:scale-[1.02] transition-transform duration-200 ease-out select-none mr-4"
+                >
+                    <span className="text-2xl font-extrabold text-[#0f1419]">Insight</span>
+                    <span className="text-2xl font-medium text-[#0d6b5f]">Pay</span>
+                </NavLink>
 
                 {/* Main desktop navigation buttons */}
                 <div className="top-nav-scroll hidden md:flex">

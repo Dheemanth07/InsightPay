@@ -248,7 +248,7 @@ export function WalletPage() {
 
             <section className="panel balance-panel">
                 <p>Current Balance</p>
-                <h2>INR {balance.toFixed(2)}</h2>
+                <h2>₹ {balance.toFixed(2)}</h2>
             </section>
 
             {pendingSplits.length > 0 && (
@@ -258,12 +258,12 @@ export function WalletPage() {
                     </h2>
                     <div className="transaction-list" style={{ display: "grid", gap: "0.75rem" }}>
                         {pendingSplits.map((split) => (
-                            <div 
-                                key={split.id} 
-                                className="transaction-row" 
-                                style={{ 
-                                    display: "flex", 
-                                    alignItems: "center", 
+                            <div
+                                key={split.id}
+                                className="transaction-row"
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
                                     justifyContent: "space-between",
                                     padding: "1rem 1.25rem",
                                     borderRadius: "14px",

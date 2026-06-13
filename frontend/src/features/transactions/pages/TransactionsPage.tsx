@@ -231,14 +231,14 @@ export function TransactionsPage() {
                 currentTransactions.map((currentTransaction) =>
                     currentTransaction.id === transaction.id
                         ? {
-                              ...currentTransaction,
-                              categoryId,
-                              category: {
-                                  id: selectedCategory.id,
-                                  name: selectedCategory.name,
-                                  type: selectedCategory.type,
-                              },
-                          }
+                            ...currentTransaction,
+                            categoryId,
+                            category: {
+                                id: selectedCategory.id,
+                                name: selectedCategory.name,
+                                type: selectedCategory.type,
+                            },
+                        }
                         : currentTransaction,
                 ),
             );
@@ -387,14 +387,14 @@ export function TransactionsPage() {
                                                                 monthKey,
                                                             )
                                                                 ? current.filter(
-                                                                      (item) =>
-                                                                          item !==
-                                                                          monthKey,
-                                                                  )
+                                                                    (item) =>
+                                                                        item !==
+                                                                        monthKey,
+                                                                )
                                                                 : [
-                                                                      ...current,
-                                                                      monthKey,
-                                                                  ],
+                                                                    ...current,
+                                                                    monthKey,
+                                                                ],
                                                     );
                                                 }}
                                             />
@@ -425,14 +425,14 @@ export function TransactionsPage() {
                                                             category,
                                                         )
                                                             ? current.filter(
-                                                                  (item) =>
-                                                                      item !==
-                                                                      category,
-                                                              )
+                                                                (item) =>
+                                                                    item !==
+                                                                    category,
+                                                            )
                                                             : [
-                                                                  ...current,
-                                                                  category,
-                                                              ],
+                                                                ...current,
+                                                                category,
+                                                            ],
                                                 );
                                             }}
                                         />
@@ -460,14 +460,14 @@ export function TransactionsPage() {
                                                     (current) =>
                                                         current.includes(status)
                                                             ? current.filter(
-                                                                  (item) =>
-                                                                      item !==
-                                                                      status,
-                                                              )
+                                                                (item) =>
+                                                                    item !==
+                                                                    status,
+                                                            )
                                                             : [
-                                                                  ...current,
-                                                                  status,
-                                                              ],
+                                                                ...current,
+                                                                status,
+                                                            ],
                                                 );
                                             }}
                                         />
@@ -491,9 +491,9 @@ export function TransactionsPage() {
                                                 setSelectedTypes((current) =>
                                                     current.includes(type)
                                                         ? current.filter(
-                                                              (item) =>
-                                                                  item !== type,
-                                                          )
+                                                            (item) =>
+                                                                item !== type,
+                                                        )
                                                         : [...current, type],
                                                 );
                                             }}
@@ -542,7 +542,7 @@ export function TransactionsPage() {
                                 <div className="group-header">
                                     <p className="group-label">{group.label}</p>
                                     <p className="group-subtitle">
-                                        Total expenditure: INR {monthTotal.toFixed(2)}
+                                        Total expenditure: ₹{monthTotal.toFixed(2)}
                                     </p>
                                 </div>
                             </div>
@@ -627,10 +627,10 @@ export function TransactionsPage() {
                                                     type="button"
                                                     className="secondary-button"
                                                     onClick={() => setSplitTransaction(transaction)}
-                                                    style={{ 
-                                                        marginTop: "0.75rem", 
-                                                        padding: "0.45rem 1rem", 
-                                                        fontSize: "0.8rem", 
+                                                    style={{
+                                                        marginTop: "0.75rem",
+                                                        padding: "0.45rem 1rem",
+                                                        fontSize: "0.8rem",
                                                         borderRadius: "999px",
                                                         display: "block",
                                                         width: "fit-content"
@@ -648,9 +648,9 @@ export function TransactionsPage() {
                                             }
                                         >
                                             {transaction.type === "DEPOSIT"
-                                                ? "+"
-                                                : "-"}
-                                            INR {Math.abs(transaction.amount).toFixed(
+                                                ? "+ "
+                                                : "- "}
+                                            ₹{Math.abs(transaction.amount).toFixed(
                                                 2,
                                             )}
                                         </strong>

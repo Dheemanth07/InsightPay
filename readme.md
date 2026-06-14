@@ -4,15 +4,11 @@ InsightPay is a secure, full-stack digital wallet and personal finance platform 
 
 ---
 
-## Interface Preview & Live Demo Walkthrough
-
-### WebM Session Recording
-Check out a recorded walk of the sign-up, login, dashboard management, and credit card features:
-[Download/View WebM Web Recording](file:///C:/Users/dheem/.gemini/antigravity-ide/brain/afcb1a42-13ea-40cc-96bf-2a82eee6c474/live_demo_1781370907236.webp) (saved locally in your workspace's conversation artifact directory).
+## Interface Preview 
 
 ### UI Screenshots
 
-#### Modern Landing Page
+#### Landing Page
 ![Landing Page Interface](screenshots/demo_landing.png)
 
 #### Personal Finance Dashboard

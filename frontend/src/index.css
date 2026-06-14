@@ -689,6 +689,10 @@
     .wallet-actions {
         grid-template-columns: 1fr;
     }
+
+    .wallet-actions-row {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (min-width: 721px) and (max-width: 980px) {
@@ -755,4 +759,39 @@
     overflow: visible !important;
     text-overflow: clip !important;
     max-width: none !important;
+}
+
+/* Card layout scaling wrapper for mobile responsive sizes without bounds clipping */
+.credit-card-scale-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 280px;
+    height: 147px;
+    overflow: visible;
+}
+
+.credit-card-scale-wrapper > div {
+    transform: scale(0.7);
+    transform-origin: center;
+}
+
+@media (min-width: 640px) {
+    .credit-card-scale-wrapper {
+        width: 352px;
+        height: 184.8px;
+    }
+    .credit-card-scale-wrapper > div {
+        transform: scale(0.88);
+    }
+}
+
+@media (min-width: 1024px) {
+    .credit-card-scale-wrapper {
+        width: 400px;
+        height: 210px;
+    }
+    .credit-card-scale-wrapper > div {
+        transform: scale(1);
+    }
 }

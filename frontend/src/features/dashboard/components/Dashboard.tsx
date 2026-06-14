@@ -186,19 +186,23 @@ export function Dashboard() {
 
                     <div className="flex min-h-[210px] items-center justify-center">
                         {loadingCard ? (
-                            <div className="origin-center scale-[0.78] sm:scale-[0.88] lg:scale-100">
-                                <Skeleton width="w-[400px]" height="h-[210px]" rounded="rounded-2xl" />
+                            <div className="credit-card-scale-wrapper">
+                                <div>
+                                    <Skeleton width="w-[400px]" height="h-[210px]" rounded="rounded-2xl" />
+                                </div>
                             </div>
                         ) : primaryCard ? (
-                            <div className="origin-center scale-[0.78] sm:scale-[0.88] lg:scale-100">
-                                <CreditCard
-                                    brand={primaryCard.brand}
-                                    issuerBank={primaryCard.issuerBank}
-                                    lastFour={primaryCard.last4}
-                                    expiryMonth={primaryCard.expiryMonth}
-                                    expiryYear={primaryCard.expiryYear}
-                                    userName={user?.name}
-                                />
+                            <div className="credit-card-scale-wrapper">
+                                <div>
+                                    <CreditCard
+                                        brand={primaryCard.brand}
+                                        issuerBank={primaryCard.issuerBank}
+                                        lastFour={primaryCard.last4}
+                                        expiryMonth={primaryCard.expiryMonth}
+                                        expiryYear={primaryCard.expiryYear}
+                                        userName={user?.name}
+                                    />
+                                </div>
                             </div>
                         ) : (
                             <div className="flex h-full w-full flex-col items-center justify-center rounded-2xl border border-dashed border-[#cfd8df] bg-white/70 px-6 py-10 text-center">

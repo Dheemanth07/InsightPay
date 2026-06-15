@@ -12,7 +12,7 @@ InsightPay is a secure, full-stack digital wallet and personal finance platform 
 ![Landing Page Interface](screenshots/demo_landing.png)
 
 #### Personal Finance Dashboard
-![Dashboard Spending Analytics & Ledger](screenshots/demo_dashboard.png)
+![Dashboard Spending Analytics & Ledger](screenshots/demo_dashboard1.png)
 
 #### Saved Cards Management
 ![Saved Cards View](screenshots/demo_cards.png)

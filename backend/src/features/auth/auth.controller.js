@@ -19,9 +19,15 @@ export const register = async (req, res) => {
             return res.status(400).json({ message: "All fields are required" });
         }
 
-        if (password.length < 6) {
+        // Input length validation
+        if (name.length > 50) return res.status(400).json({ message: "Name too long" });
+        if (email.length > 100) return res.status(400).json({ message: "Email too long" });
+        if (password.length > 100) return res.status(400).json({ message: "Password too long" });
+
+        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+        if (!passwordRegex.test(password)) {
             return res.status(400).json({
-                message: "Password must be at least 6 characters long",
+                message: "Password must be at least 8 characters and include at least one letter and one number.",
             });
         }
 
@@ -50,11 +56,23 @@ export const login = async (req, res) => {
             return res.status(400).json({ message: "All fields are required" });
         }
 
-        const result = await loginUser({ email, password });
+        // Input length validation
+        if (email.length > 100) return res.status(400).json({ message: "Email too long" });
+        if (password.length > 100) return res.status(400).json({ message: "Password too long" });
+
+        const { user, token } = await loginUser({ email, password });
+
+        // Set HTTP-only cookie
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
 
         return res.status(200).json({
             message: "Login successful",
-            ...result,
+            user,
         });
     } catch (err) {
         logger.error({ err }, "Login error");
@@ -63,6 +81,16 @@ export const login = async (req, res) => {
             .json({ message: err.message || "Internal server error" });
     }
 };
+
+export const logout = async (req, res) => {
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    });
+    return res.status(200).json({ message: "Logged out successfully" });
+};
+
 
 export const getMe = async (req, res) => {
     try {

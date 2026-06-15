@@ -6,7 +6,11 @@ export const registerUser = (data: RegisterPayload) => {
 };
 
 export const loginUser = (data: LoginPayload) => {
-    return apiClient.post<{ token: string; user: User }>("/auth/login", data);
+    return apiClient.post<{ user: User }>("/auth/login", data);
+};
+
+export const logoutUser = () => {
+    return apiClient.post("/auth/logout");
 };
 
 export const getMe = () => {

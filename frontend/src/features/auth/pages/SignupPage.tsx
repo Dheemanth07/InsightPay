@@ -28,8 +28,9 @@ export function SignupPage() {
             return;
         }
 
-        if (password.length < 6) {
-            setError("Password must be at least 6 characters");
+        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+        if (!passwordRegex.test(password)) {
+            setError("Password must be at least 8 characters and include at least one letter and one number.");
             return;
         }
 
@@ -89,7 +90,7 @@ export function SignupPage() {
                     <input
                         type="password"
                         autoComplete="new-password"
-                        minLength={6}
+                        minLength={8}
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                         required

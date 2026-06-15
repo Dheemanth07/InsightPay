@@ -9,16 +9,16 @@ const dataFormatter = (number: number) => {
     }).format(number);
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-    "Bills": "bg-teal-500",
-    "People": "bg-indigo-500",
-    "Other": "bg-amber-500",
-    "Uncategorized": "bg-amber-500",
-    "Entertainment": "bg-rose-500",
-    "Food": "bg-purple-500",
-    "Shopping": "bg-rose-500",
-    "Transport": "bg-indigo-500",
-    "Travel": "bg-teal-500"
+const CATEGORY_COLORS: Record<string, { hex: string; tremor: string }> = {
+    "Bills": { hex: "#3b82f6", tremor: "blue" },
+    "Entertainment": { hex: "#f43f5e", tremor: "rose" },
+    "Food": { hex: "#a855f7", tremor: "purple" },
+    "People": { hex: "#6366f1", tremor: "indigo" },
+    "Travel": { hex: "#10b981", tremor: "emerald" },
+    "Transport": { hex: "#64748b", tremor: "slate" },
+    "Other": { hex: "#f59e0b", tremor: "amber" },
+    "Shopping": { hex: "#14b8a6", tremor: "teal" },
+    "Uncategorized": { hex: "#6b7280", tremor: "gray" }
 };
 
 interface TooltipPayloadItem {
@@ -31,12 +31,12 @@ const customTooltip = (props: { active?: boolean; payload?: TooltipPayloadItem[]
     if (!active || !payload || payload.length === 0) return null;
 
     const data = payload[0].payload;
-    const colorMap = CATEGORY_COLORS;
+    const categoryColor = CATEGORY_COLORS[data.name]?.hex || "#9ca3af";
 
     return (
         <div className="rounded-lg bg-white p-3 shadow-lg ring-1 ring-gray-200 flex items-center gap-3">
             <div
-                className={`w-3 h-3 rounded-full shrink-0 ${colorMap[data.name] || 'bg-gray-400'}`}
+                className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: categoryColor }}
             />
             <div className="flex flex-col">
                 <span className="text-sm font-medium text-gray-700">{data.name}</span>
@@ -53,16 +53,18 @@ type SpendingAnalyticsProps = {
 };
 
 export function SpendingAnalytics({ data }: SpendingAnalyticsProps) {
-    const donutColors = data.map(item => {
-        const colorClass = CATEGORY_COLORS[item.name] || "bg-gray-400";
-        return colorClass.replace("bg-", "").split("-")[0];
-    });
+
+    const sortedData = [...data].sort((a, b) => b.amount - a.amount);
+
+    const donutColors = sortedData.map(
+        (item) => CATEGORY_COLORS[item.name]?.tremor || "gray"
+    );
 
     return (
         <Card className="w-full min-h-[300px] bg-white ring-1 ring-gray-100 border-0 rounded-[28px] p-6 shadow-sm">
             <h3 className="text-lg font-bold text-gray-900 mb-1">Spending Analytics</h3>
             <p className="text-sm text-gray-500 mb-6">Distribution of expenses by category (last 30 days)</p>
-            {data.length === 0 ? (
+            {sortedData.length === 0 ? (
                 <div className="flex h-48 items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50/50">
                     <p className="text-sm text-gray-500">No expense data available for the last 30 days</p>
                 </div>
@@ -70,7 +72,7 @@ export function SpendingAnalytics({ data }: SpendingAnalyticsProps) {
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6 mt-4">
                     <DonutChart
                         className="h-44 w-44"
-                        data={data}
+                        data={sortedData}
                         category="amount"
                         index="name"
                         variant="donut"
@@ -79,12 +81,12 @@ export function SpendingAnalytics({ data }: SpendingAnalyticsProps) {
                         customTooltip={customTooltip}
                     />
                     <ul className="flex flex-col gap-3 w-full md:w-1/2">
-                        {data.map((item) => {
-                            const colorClass = CATEGORY_COLORS[item.name] || "bg-gray-400";
+                        {sortedData.map((item) => {
+                            const dotColor = CATEGORY_COLORS[item.name]?.hex || "#9ca3af";
                             return (
                                 <li key={item.name} className="flex items-center justify-between gap-2 text-sm text-gray-700">
                                     <div className="flex items-center gap-2">
-                                        <span className={`w-3 h-3 rounded-full shrink-0 ${colorClass}`} />
+                                        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />
                                         <span className="text-sm text-gray-700">{item.name}</span>
                                     </div>
                                     <span className="text-sm text-gray-500 font-medium">{dataFormatter(item.amount)}</span>

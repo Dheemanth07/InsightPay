@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import authRoutes from "./features/auth/auth.routes.js";
 import walletRoutes from "./features/wallet/wallet.routes.js";
 import cardRoutes from "./features/cards/card.routes.js";
@@ -38,6 +39,7 @@ app.use(
 );
 
 app.use(helmet());
+app.use(cookieParser());
 app.use(express.json());
 
 app.get("/", (req, res) => {

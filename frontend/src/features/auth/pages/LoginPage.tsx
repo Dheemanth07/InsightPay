@@ -30,9 +30,9 @@ export function LoginPage() {
         try {
             setError("");
             setIsSubmitting(true);
-            const response = await loginUser({ email, password });
+            await loginUser({ email, password });
 
-            await login(response.data.token);
+            await login();
             toast.success("Welcome back! You're logged in.");
             navigate("/dashboard");
         } catch (err) {

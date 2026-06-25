@@ -2,7 +2,6 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
-import lusca from "lusca";
 import authRoutes from "./features/auth/auth.routes.js";
 import walletRoutes from "./features/wallet/wallet.routes.js";
 import cardRoutes from "./features/cards/card.routes.js";
@@ -42,23 +41,6 @@ app.use(
 
 app.use(helmet());
 app.use(cookieParser());
-
-// CSRF protection (for cookie-based auth). Must be placed after cookieParser.
-app.use(
-    lusca.csrf({
-        // Use a strong secret in production via env var.
-        // lusca will generate its own if not provided, but explicit is safer.
-        secret: process.env.CSRF_SECRET || "dev-csrf-secret-change-me",
-
-        cookie: {
-            key: "XSRF-TOKEN",
-            httpOnly: false,
-            sameSite: "lax",
-        },
-        // Allow SPA/AJAX by accepting token from header.
-        value: "_csrf",
-    })
-);
 
 app.use(express.json());
 

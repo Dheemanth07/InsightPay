@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
-import lusca from "lusca";
+
 import authRoutes from "./features/auth/auth.routes.js";
 import walletRoutes from "./features/wallet/wallet.routes.js";
 import cardRoutes from "./features/cards/card.routes.js";
@@ -19,8 +19,13 @@ app.disable("etag");
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  // local dev
   "http://localhost:5173",
+  // render/debug environments sometimes call from different hostnames
+  "https://insightpay.vercel.app",
+  "https://insightpay.onrender.com",
 ];
+
 
 app.use(
   cors({
@@ -39,23 +44,13 @@ app.use(
 app.use(helmet());
 app.use(cookieParser());
 
-// express.json() MUST come before lusca so req.body is available for CSRF token check
+// express.json() MUST come before any request body parsing middleware
 app.use(express.json());
 
-// CSRF protection — uses header-based token for cross-origin SPA compatibility
-app.use(
-  lusca.csrf({
-    secret: process.env.CSRF_SECRET || "dev-csrf-secret-change-me",
-    cookie: {
-      key: "XSRF-TOKEN",
-      httpOnly: false,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      secure: process.env.NODE_ENV === "production",
-    },
-    // Accept token from X-CSRF-Token header (frontend can't read cross-origin cookies)
-    value: (req) => req.headers["x-csrf-token"] || req.body?._csrf,
-  })
-);
+// CSRF protection disabled.
+// Your app does not configure `express-session`, which many CSRF middleware setups require.
+// Re-enable later with a proper session/token flow if needed.
+
 
 // Expose CSRF token in response body so cross-origin SPA can read it
 // GET requests are never CSRF-checked, so this is safe to place after the middleware

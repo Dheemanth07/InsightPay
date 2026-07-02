@@ -41,6 +41,13 @@ export const confirmQrPaymentTransaction = (payerId, reference) => {
         }
         if (transaction.toUserId === payerId) throw new Error("Cannot pay to yourself");
 
+        const receiverId = transaction.toUserId;
+        const [firstId, secondId] = payerId < receiverId ? [payerId, receiverId] : [receiverId, payerId];
+
+        // Acquire locks in deterministic order to prevent deadlocks
+        await tx.$queryRaw`SELECT id FROM User WHERE id = ${firstId} FOR UPDATE`;
+        await tx.$queryRaw`SELECT id FROM User WHERE id = ${secondId} FOR UPDATE`;
+
         const payer = await tx.user.findUnique({ where: { id: payerId } });
         if (!payer || Number(payer.balance) < Number(transaction.amount)) {
             throw new Error("Insufficient balance");
@@ -52,7 +59,7 @@ export const confirmQrPaymentTransaction = (payerId, reference) => {
         });
 
         await tx.user.update({
-            where: { id: transaction.toUserId },
+            where: { id: receiverId },
             data: { balance: { increment: transaction.amount } },
         });
 

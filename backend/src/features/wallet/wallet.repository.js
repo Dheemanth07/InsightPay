@@ -23,6 +23,12 @@ export const addMoneyTransaction = (userId, amount) => {
 
 export const sendMoneyTransaction = (senderId, receiverId, amount) => {
     return prisma.$transaction(async (tx) => {
+        const [firstId, secondId] = senderId < receiverId ? [senderId, receiverId] : [receiverId, senderId];
+
+        // Acquire locks in deterministic order to prevent deadlocks
+        await tx.$queryRaw`SELECT id FROM User WHERE id = ${firstId} FOR UPDATE`;
+        await tx.$queryRaw`SELECT id FROM User WHERE id = ${secondId} FOR UPDATE`;
+
         const sender = await tx.user.findUnique({ where: { id: senderId } });
         if (!sender) throw new Error("Sender not found");
 
@@ -59,6 +65,9 @@ export const sendMoneyTransaction = (senderId, receiverId, amount) => {
 
 export const withdrawMoneyTransaction = (userId, amount) => {
     return prisma.$transaction(async (tx) => {
+        // Acquire locking read to prevent concurrent withdrawals race conditions
+        await tx.$queryRaw`SELECT id FROM User WHERE id = ${userId} FOR UPDATE`;
+
         const user = await tx.user.findUnique({ where: { id: userId } });
 
         if (!user) throw new Error("User not found");

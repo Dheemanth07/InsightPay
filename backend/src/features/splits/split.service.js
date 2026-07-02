@@ -80,6 +80,12 @@ export const paySplitShare = async (payerId, splitId) => {
         }
 
         const amount = Number(split.amountOwed);
+        const requesterId = split.requesterId;
+        const [firstId, secondId] = payerId < requesterId ? [payerId, requesterId] : [requesterId, payerId];
+
+        // Acquire locks in deterministic order to prevent deadlocks
+        await tx.$queryRaw`SELECT id FROM User WHERE id = ${firstId} FOR UPDATE`;
+        await tx.$queryRaw`SELECT id FROM User WHERE id = ${secondId} FOR UPDATE`;
 
         const payerUser = await tx.user.findUnique({
             where: { id: payerId },
@@ -95,7 +101,7 @@ export const paySplitShare = async (payerId, splitId) => {
         });
 
         await tx.user.update({
-            where: { id: split.requesterId },
+            where: { id: requesterId },
             data: { balance: { increment: amount } },
         });
 
@@ -111,7 +117,7 @@ export const paySplitShare = async (payerId, splitId) => {
                 method: "SYSTEM",
                 status: "SUCCESS",
                 fromUserId: payerId,
-                toUserId: split.requesterId,
+                toUserId: requesterId,
                 reference: `SPLIT-${splitId.slice(0, 8).toUpperCase()}`,
             },
         });

@@ -28,6 +28,28 @@ export const createTransactionWithBalanceUpdate = (
     { amount, type, categoryId },
 ) => {
     return prisma.$transaction(async (tx) => {
+        if (type === "TRANSFER" || type === "WITHDRAWAL") {
+            // Lock the user row
+            await tx.$queryRaw`SELECT id FROM User WHERE id = ${userId} FOR UPDATE`;
+
+            const user = await tx.user.findUnique({ where: { id: userId } });
+            if (!user || Number(user.balance) < amount) {
+                throw new Error("Insufficient balance");
+            }
+
+            await tx.user.update({
+                where: { id: userId },
+                data: { balance: { decrement: amount } },
+            });
+        }
+
+        if (type === "DEPOSIT") {
+            await tx.user.update({
+                where: { id: userId },
+                data: { balance: { increment: amount } },
+            });
+        }
+
         const transaction = await tx.transaction.create({
             data: {
                 amount,
@@ -41,20 +63,6 @@ export const createTransactionWithBalanceUpdate = (
                 },
             },
         });
-
-        if (type === "TRANSFER" || type === "WITHDRAWAL") {
-            await tx.user.update({
-                where: { id: userId },
-                data: { balance: { decrement: amount } },
-            });
-        }
-
-        if (type === "DEPOSIT") {
-            await tx.user.update({
-                where: { id: userId },
-                data: { balance: { increment: amount } },
-            });
-        }
 
         return transaction;
     });

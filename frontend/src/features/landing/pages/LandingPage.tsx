@@ -149,8 +149,8 @@ export function LandingPage() {
                 {/* ── Hero Section ─────────────────────────────────────────── */}
                 <section className="relative overflow-hidden">
                     {/* Subtle gradient orbs */}
-                    <div className="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full bg-[#0d6b5f]/5 blur-3xl pointer-events-none" />
-                    <div className="absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full bg-[#0d6b5f]/5 blur-3xl pointer-events-none" />
+                    <div className="absolute -top-32 -left-32 w-150 h-150 rounded-full bg-[#0d6b5f]/5 blur-3xl pointer-events-none" />
+                    <div className="absolute -bottom-32 -right-32 w-125 h-125 rounded-full bg-[#0d6b5f]/5 blur-3xl pointer-events-none" />
 
                     <div className="relative max-w-6xl mx-auto px-6 pt-24 pb-20 grid lg:grid-cols-2 gap-16 items-center">
                         {/* Left: Copy */}
@@ -333,7 +333,7 @@ export function LandingPage() {
                                 key={title}
                                 className={`bg-white rounded-[20px] border ${border} p-6 flex flex-col gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200`}
                             >
-                                <div className={`w-10 h-10 rounded-xl ${accent} flex items-center justify-center flex-shrink-0`}>
+                                <div className={`w-10 h-10 rounded-xl ${accent} flex items-center justify-center shrink-0`}>
                                     <Icon size={20} />
                                 </div>
                                 <div>

@@ -3,7 +3,7 @@ import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 
 export const authRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 20,
+    max: process.env.NODE_ENV === "production" ? 100 : 10_000,
     message: {
         message: "Too many attempts, please try again after 15 minutes."
     },
@@ -13,7 +13,7 @@ export const authRateLimiter = rateLimit({
 
 export const sessionRateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 1000,
+    max: process.env.NODE_ENV === "production" ? 1000 : 10_000,
     standardHeaders: true,
     legacyHeaders: false,
     // 2. Update the keyGenerator to use the helper safely

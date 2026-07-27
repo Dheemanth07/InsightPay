@@ -4,26 +4,44 @@ export const findUserByEmail = (email) => {
     return prisma.user.findUnique({ where: { email } });
 };
 
-export const findUserProfileById = (id) => {
-    return prisma.user.findUnique({
+export const findUserProfileById = async (id) => {
+    const user = await prisma.user.findUnique({
         where: { id },
         select: {
             id: true,
             name: true,
             email: true,
+            upiId: true,
+            txPin: true,
             balance: true,
             createdAt: true,
+        },
+    });
+    if (!user) return null;
+    const { txPin, ...rest } = user;
+    return { ...rest, hasTxPin: !!txPin };
+};
+
+export const updateTxPin = (id, hashedPin, upiId) => {
+    return prisma.user.update({
+        where: { id },
+        data: {
+            txPin: hashedPin,
+            ...(upiId && { upiId }),
         },
     });
 };
 
 export const createUser = ({ name, email, password }) => {
+    const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const generatedUpiId = `${cleanName || "user"}${Math.floor(100 + Math.random() * 900)}@insightpay`;
     return prisma.user.create({
-        data: { name, email, password },
+        data: { name, email, password, upiId: generatedUpiId },
         select: {
             id: true,
             name: true,
             email: true,
+            upiId: true,
             createdAt: true,
         },
     });

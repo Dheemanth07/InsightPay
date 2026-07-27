@@ -9,7 +9,7 @@ export function AppProviders({ children }: PropsWithChildren) {
             <AuthProvider>
                 {children}
                 <Toaster
-                    position="top-center"
+                    position="bottom-right"
                     toastOptions={{
                         duration: 4000,
                         style: {

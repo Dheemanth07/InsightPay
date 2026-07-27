@@ -19,23 +19,31 @@ app.disable("etag");
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
-  // local dev
   "http://localhost:5173",
-  // render/debug environments sometimes call from different hostnames
+  "http://localhost:5174",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
   "https://insightpay.vercel.app",
   "https://insightpay.onrender.com",
 ];
 
-
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, etc.)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.indexOf(origin) === -1) {
-        const msg = "The CORS policy for this site does not allow access from the specified Origin.";
-        return callback(new Error(msg), false);
+
+      // Always allow local dev origins (localhost, 127.0.0.1, and LAN IPs like 192.168.x.x on any port)
+      if (/^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
       }
-      return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      const msg = `The CORS policy for this site does not allow access from the specified Origin: ${origin}`;
+      return callback(new Error(msg), false);
     },
     credentials: true,
   })

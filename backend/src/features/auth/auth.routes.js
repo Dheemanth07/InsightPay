@@ -1,5 +1,5 @@
 import express from "express";
-import { getMe, login, register, getUsersSuggestions, getUsersSearchList, logout } from "./auth.controller.js";
+import { getMe, login, register, getUsersSuggestions, getUsersSearchList, logout, setupPin } from "./auth.controller.js";
 import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { authRateLimiter, sessionRateLimiter } from "../../middlewares/rateLimit.middleware.js";
 
@@ -9,6 +9,7 @@ router.post("/register", authRateLimiter, register);
 router.post("/login", authRateLimiter, login);
 router.post("/logout", logout);
 router.get("/me", sessionRateLimiter, authMiddleware, getMe);
+router.post("/pin", sessionRateLimiter, authMiddleware, setupPin);
 router.get("/users/suggestions", sessionRateLimiter, authMiddleware, getUsersSuggestions);
 router.get("/users/search", sessionRateLimiter, authMiddleware, getUsersSearchList);
 

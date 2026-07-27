@@ -4,6 +4,7 @@ import {
     registerUser,
     getFrequentContactsList,
     searchUsersList as searchUsersService,
+    setupTxPin,
 } from "./auth.service.js";
 import logger from "../../utils/logger.js";
 
@@ -125,5 +126,16 @@ export const getUsersSearchList = async (req, res) => {
     } catch (err) {
         logger.error({ err }, "Error searching users");
         return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const setupPin = async (req, res) => {
+    try {
+        const { pin } = req.body;
+        const result = await setupTxPin(req.user.id, pin);
+        return res.status(200).json(result);
+    } catch (err) {
+        logger.error({ err }, "Error setting transaction PIN");
+        return res.status(err.statusCode || 500).json({ message: err.message || "Internal server error" });
     }
 };

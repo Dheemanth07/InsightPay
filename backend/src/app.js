@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import { doubleCsrf } from "csrf-csrf";
 
 import authRoutes from "./features/auth/auth.routes.js";
 import walletRoutes from "./features/wallet/wallet.routes.js";
@@ -55,20 +56,37 @@ app.use(cookieParser());
 // express.json() MUST come before any request body parsing middleware
 app.use(express.json());
 
-// CSRF protection disabled.
-// Your app does not configure `express-session`, which many CSRF middleware setups require.
-// Re-enable later with a proper session/token flow if needed.
+// ── CSRF protection (double-submit cookie, session-less) ──────────────────────
+// Uses csrf-csrf which works without express-session by storing the token in a
+// signed HttpOnly cookie and validating it against the x-csrf-token request header.
+const isProd = process.env.NODE_ENV === "production";
 
+const { generateToken, doubleCsrfProtection } = doubleCsrf({
+  getSecret: () => process.env.CSRF_SECRET || "insightpay-csrf-secret-change-in-prod",
+  // __Host- prefix enforces Secure + no Domain + path=/ in production
+  // Plain name in dev to avoid rejection on http://localhost
+  cookieName: isProd ? "__Host-insightpay.x-csrf-token" : "insightpay.x-csrf-token",
+  cookieOptions: {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: isProd,
+    path: "/",
+  },
+  getTokenFromRequest: (req) => req.headers["x-csrf-token"],
+});
 
-// Expose CSRF token in response body so cross-origin SPA can read it
-// GET requests are never CSRF-checked, so this is safe to place after the middleware
+// Expose CSRF token — GET is never CSRF-checked, safe to call before login
 app.get("/csrf-token", (req, res) => {
-  res.json({ token: res.locals._csrf || "" });
+  const token = generateToken(req, res);
+  res.json({ token });
 });
 
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to InsightPay Backend" });
 });
+
+// Apply CSRF protection to all state-mutating routes
+app.use(doubleCsrfProtection);
 
 app.use("/auth", authRoutes);
 app.use("/wallet", walletRoutes);

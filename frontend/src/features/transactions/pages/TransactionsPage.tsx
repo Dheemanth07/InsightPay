@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { getCategories } from "../../categories/categories.api";
 import type { Category } from "../../categories/categories.types";
 import { getApiErrorMessage } from "../../../shared/api/errors";
 import { Skeleton } from "../../../shared/components/Skeleton";
 import {
-    getTransactions,
     updateTransactionCategory,
 } from "../transactions.api";
+import { getWalletTransactions } from "../../wallet/wallet.api";
 import type { Transaction } from "../transactions.types";
 import { SplitBillModal } from "../components/SplitBillModal";
+import { suggestCategory } from "../../dashboard/dashboard.api";
+
 
 const MONTH_LABEL_OPTIONS: Intl.DateTimeFormatOptions = {
     month: "long",
@@ -120,18 +122,30 @@ export function TransactionsPage() {
     const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
     const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
 
+    // Cursor Pagination States
+    const [cursorStack, setCursorStack] = useState<(number | null)[]>([null]);
+    const [pageIndex, setPageIndex] = useState<number>(0);
+    const [limit, setLimit] = useState<number>(10);
+    const [nextCursor, setNextCursor] = useState<number | null>(null);
+
     useEffect(() => {
         const fetchTransactions = async () => {
             try {
                 setLoading(true);
-                const [transactionResponse, categoryResponse] =
-                    await Promise.all([getTransactions(), getCategories()]);
-                const normalized = (transactionResponse.data || []).map(
-                    (transaction) => ({
-                        ...transaction,
-                        amount: Number(transaction.amount) || 0,
-                    }),
-                );
+                const currentCursor = cursorStack[pageIndex];
+                const [walletRes, categoryResponse] = await Promise.all([
+                    getWalletTransactions(currentCursor, limit),
+                    getCategories(),
+                ]);
+
+                const rawTransactions = (walletRes.data.result?.transactions || []) as any[];
+                setNextCursor(walletRes.data.result?.nextCursor ?? null);
+
+                const normalized = rawTransactions.map((transaction) => ({
+                    ...transaction,
+                    amount: Number(transaction.amount) || 0,
+                }));
+
                 setTransactions(normalized);
                 setCategories(categoryResponse.data || []);
             } catch (err) {
@@ -146,8 +160,22 @@ export function TransactionsPage() {
             }
         };
 
-        fetchTransactions();
-    }, []);
+        void fetchTransactions();
+    }, [pageIndex, limit, cursorStack]);
+
+    const handleNextPage = () => {
+        if (!nextCursor) return;
+        const newStack = [...cursorStack];
+        newStack[pageIndex + 1] = nextCursor;
+        setCursorStack(newStack);
+        setPageIndex((prev) => prev + 1);
+    };
+
+    const handlePreviousPage = () => {
+        if (pageIndex > 0) {
+            setPageIndex((prev) => prev - 1);
+        }
+    };
 
     const filters = useMemo(
         () => filterOptionsFromTransactions(transactions),
@@ -251,6 +279,51 @@ export function TransactionsPage() {
         }
     };
 
+
+// ─── AI Category Suggestion Chip ───────────────────────────────────────────────────
+function CategorySuggestionChip({
+    description,
+    categories,
+    onAccept,
+}: {
+    description: string;
+    categories: Category[];
+    onAccept: (categoryId: string) => void;
+}) {
+    const [suggestion, setSuggestion] = useState<string | null>(null);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        if (!description || description.length < 3) { setSuggestion(null); return; }
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(async () => {
+            try {
+                const catNames = categories.filter(c => c.type === "EXPENSE").map(c => c.name);
+                if (catNames.length === 0) return;
+                const res = await suggestCategory(description, catNames);
+                setSuggestion(res.data.suggestion ?? null);
+            } catch { setSuggestion(null); }
+        }, 600);
+        return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    }, [description, categories]);
+
+    if (!suggestion) return null;
+
+    const matchedCat = categories.find(c => c.name === suggestion);
+    if (!matchedCat) return null;
+
+    return (
+        <button
+            type="button"
+            onClick={() => onAccept(matchedCat.id)}
+            className="inline-flex items-center gap-1 px-2.5 py-1 mt-1.5 rounded-full text-xs font-bold bg-[#e8f5f3] text-[#0d6b5f] border border-[#b8dbd7] hover:bg-[#0d6b5f] hover:text-white transition-colors cursor-pointer"
+            title="Click to apply this suggested category"
+        >
+            Suggested: {suggestion}
+        </button>
+    );
+}
+
     if (loading) {
         return (
             <main className="app-page">
@@ -330,10 +403,15 @@ export function TransactionsPage() {
                 </div>
                 <button
                     type="button"
-                    className="secondary-button filter-button"
+                    className="secondary-button filter-button flex items-center justify-center gap-2"
                     onClick={() => setFilterOpen(true)}
                 >
-                    Filter
+                    <span>Filter</span>
+                    {(selectedMonths.length + selectedCategories.length + selectedStatuses.length + selectedTypes.length) > 0 && (
+                        <span className="filter-count-badge">
+                            {selectedMonths.length + selectedCategories.length + selectedStatuses.length + selectedTypes.length}
+                        </span>
+                    )}
                 </button>
             </section>
 
@@ -341,15 +419,20 @@ export function TransactionsPage() {
 
             {filterOpen && (
                 <div
-                    className="filter-panel-overlay"
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                    style={{ backgroundColor: "rgba(15, 23, 42, 0.45)", backdropFilter: "blur(6px)" }}
                     onClick={() => setFilterOpen(false)}
                 >
                     <div
-                        className="filter-panel"
+                        className="bg-white rounded-[28px] border border-[#e8ecf0] shadow-2xl max-w-lg w-full p-6 sm:p-7 max-h-[85vh] flex flex-col justify-between overflow-hidden"
                         onClick={(event) => event.stopPropagation()}
                     >
-                        <div className="filter-header">
-                            <h2>Filter</h2>
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between pb-4 border-b border-[#eef2f5] mb-5">
+                            <div>
+                                <h2 className="text-xl font-extrabold tracking-tight text-[#0f1419]">Filter Transactions</h2>
+                                <p className="text-xs text-[#6b7280] mt-0.5">Narrow down by period, status, or category</p>
+                            </div>
                             <button
                                 type="button"
                                 className="secondary-button"
@@ -359,164 +442,153 @@ export function TransactionsPage() {
                             </button>
                         </div>
 
-                        <div className="filter-section">
-                            <h3>Month</h3>
-                            <div className="filter-options">
-                                {filters.months.map((monthKey) => {
-                                    const [month, year] = monthKey.split("/");
-                                    const label = new Date(
-                                        `${year}-${month}-01`,
-                                    ).toLocaleDateString(
-                                        "en-US",
-                                        MONTH_LABEL_OPTIONS,
-                                    );
-                                    return (
-                                        <label
-                                            key={monthKey}
-                                            className="filter-label"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedMonths.includes(
-                                                    monthKey,
-                                                )}
-                                                onChange={() => {
-                                                    setSelectedMonths(
-                                                        (current) =>
-                                                            current.includes(
-                                                                monthKey,
-                                                            )
-                                                                ? current.filter(
-                                                                    (item) =>
-                                                                        item !==
-                                                                        monthKey,
-                                                                )
-                                                                : [
-                                                                    ...current,
-                                                                    monthKey,
-                                                                ],
+                        {/* Modal Body: Compact Multi-Section Grid */}
+                        <div className="flex-1 overflow-y-auto space-y-5 pr-1 text-left">
+                            {/* Row 1: Month & Status side by side */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                {/* Month Section */}
+                                <div>
+                                    <p className="text-[11px] font-extrabold text-[#64748b] uppercase tracking-wider mb-2">Month</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {filters.months.map((monthKey) => {
+                                            const [month, year] = monthKey.split("/");
+                                            const label = new Date(`${year}-${month}-01`).toLocaleDateString("en-US", MONTH_LABEL_OPTIONS);
+                                            const isSelected = selectedMonths.includes(monthKey);
+
+                                            return (
+                                                <button
+                                                    key={monthKey}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedMonths((current) =>
+                                                            current.includes(monthKey)
+                                                                ? current.filter((item) => item !== monthKey)
+                                                                : [...current, monthKey]
+                                                        );
+                                                    }}
+                                                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                                                        isSelected
+                                                            ? "bg-[#0d6b5f] text-white border border-[#0d6b5f] shadow-sm font-bold"
+                                                            : "bg-[#f8fafb] text-[#475569] border border-[#e2e8f0] hover:bg-[#f1f5f9]"
+                                                    }`}
+                                                >
+                                                    {label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Status Section */}
+                                <div>
+                                    <p className="text-[11px] font-extrabold text-[#64748b] uppercase tracking-wider mb-2">Status</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {filters.statuses.map((status) => {
+                                            const isSelected = selectedStatuses.includes(status);
+
+                                            return (
+                                                <button
+                                                    key={status}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedStatuses((current) =>
+                                                            current.includes(status)
+                                                                ? current.filter((item) => item !== status)
+                                                                : [...current, status]
+                                                        );
+                                                    }}
+                                                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                                                        isSelected
+                                                            ? "bg-[#0d6b5f] text-white border border-[#0d6b5f] shadow-sm font-bold"
+                                                            : "bg-[#f8fafb] text-[#475569] border border-[#e2e8f0] hover:bg-[#f1f5f9]"
+                                                    }`}
+                                                >
+                                                    {status}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section 2: Type */}
+                            <div>
+                                <p className="text-[11px] font-extrabold text-[#64748b] uppercase tracking-wider mb-2">Transaction Type</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {filters.types.map((type) => {
+                                        const isSelected = selectedTypes.includes(type);
+
+                                        return (
+                                            <button
+                                                key={type}
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedTypes((current) =>
+                                                        current.includes(type)
+                                                            ? current.filter((item) => item !== type)
+                                                            : [...current, type]
                                                     );
                                                 }}
-                                            />
-                                            {label}
-                                        </label>
-                                    );
-                                })}
+                                                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                                                    isSelected
+                                                        ? "bg-[#0d6b5f] text-white border border-[#0d6b5f] shadow-sm font-bold"
+                                                        : "bg-[#f8fafb] text-[#475569] border border-[#e2e8f0] hover:bg-[#f1f5f9]"
+                                                }`}
+                                            >
+                                                {type}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Section 3: Category */}
+                            <div>
+                                <p className="text-[11px] font-extrabold text-[#64748b] uppercase tracking-wider mb-2">Category</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {filters.categories.map((category) => {
+                                        const isSelected = selectedCategories.includes(category);
+
+                                        return (
+                                            <button
+                                                key={category}
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedCategories((current) =>
+                                                        current.includes(category)
+                                                            ? current.filter((item) => item !== category)
+                                                            : [...current, category]
+                                                    );
+                                                }}
+                                                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                                                    isSelected
+                                                        ? "bg-[#0d6b5f] text-white border border-[#0d6b5f] shadow-sm font-bold"
+                                                        : "bg-[#f8fafb] text-[#475569] border border-[#e2e8f0] hover:bg-[#f1f5f9]"
+                                                }`}
+                                            >
+                                                {category}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
 
-                        <div className="filter-section">
-                            <h3>Category</h3>
-                            <div className="filter-options">
-                                {filters.categories.map((category) => (
-                                    <label
-                                        key={category}
-                                        className="filter-label"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedCategories.includes(
-                                                category,
-                                            )}
-                                            onChange={() => {
-                                                setSelectedCategories(
-                                                    (current) =>
-                                                        current.includes(
-                                                            category,
-                                                        )
-                                                            ? current.filter(
-                                                                (item) =>
-                                                                    item !==
-                                                                    category,
-                                                            )
-                                                            : [
-                                                                ...current,
-                                                                category,
-                                                            ],
-                                                );
-                                            }}
-                                        />
-                                        {category}
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="filter-section">
-                            <h3>Status</h3>
-                            <div className="filter-options">
-                                {filters.statuses.map((status) => (
-                                    <label
-                                        key={status}
-                                        className="filter-label"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedStatuses.includes(
-                                                status,
-                                            )}
-                                            onChange={() => {
-                                                setSelectedStatuses(
-                                                    (current) =>
-                                                        current.includes(status)
-                                                            ? current.filter(
-                                                                (item) =>
-                                                                    item !==
-                                                                    status,
-                                                            )
-                                                            : [
-                                                                ...current,
-                                                                status,
-                                                            ],
-                                                );
-                                            }}
-                                        />
-                                        {status}
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="filter-section">
-                            <h3>Type</h3>
-                            <div className="filter-options">
-                                {filters.types.map((type) => (
-                                    <label key={type} className="filter-label">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedTypes.includes(
-                                                type,
-                                            )}
-                                            onChange={() => {
-                                                setSelectedTypes((current) =>
-                                                    current.includes(type)
-                                                        ? current.filter(
-                                                            (item) =>
-                                                                item !== type,
-                                                        )
-                                                        : [...current, type],
-                                                );
-                                            }}
-                                        />
-                                        {type}
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="filter-actions">
+                        {/* Modal Footer Actions */}
+                        <div className="flex items-center justify-between pt-4 border-t border-[#eef2f5] mt-5">
                             <button
                                 type="button"
-                                className="secondary-button"
                                 onClick={clearFilters}
+                                className="px-4 py-2 rounded-full text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition cursor-pointer border-0"
                             >
                                 Clear all
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setFilterOpen(false)}
+                                className="px-6 py-2.5 rounded-full text-xs font-bold text-white bg-[#0d6b5f] hover:bg-[#094d45] transition cursor-pointer shadow-sm border-0"
                             >
-                                Apply
+                                Apply Filters
                             </button>
                         </div>
                     </div>
@@ -622,6 +694,17 @@ export function TransactionsPage() {
                                                     </select>
                                                 </label>
                                             )}
+                                            {transaction.status === "SUCCESS" &&
+                                                transaction.type !== "DEPOSIT" &&
+                                                !transaction.category && (
+                                                <CategorySuggestionChip
+                                                    description={`${transaction.type} to ${transactionCounterparty(transaction)}`}
+                                                    categories={categories}
+                                                    onAccept={(categoryId) =>
+                                                        handleCategoryChange(transaction, categoryId)
+                                                    }
+                                                />
+                                            )}
                                             {transaction.status === "SUCCESS" && transaction.type !== "DEPOSIT" && (
                                                 <button
                                                     type="button"
@@ -661,6 +744,51 @@ export function TransactionsPage() {
                     );
                 })
             )}
+
+            {/* Industry-Standard Cursor Pagination Bar */}
+            <div className="mt-8 p-4 rounded-3xl border border-[#e8ecf0] bg-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                <div className="text-xs font-semibold text-[#64748b]">
+                    Showing <strong className="text-[#0f1419]">Page {pageIndex + 1}</strong>
+                    {nextCursor && <span className="ml-1 font-normal text-[#94a3b8]">(More transactions available)</span>}
+                </div>
+
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#64748b] whitespace-nowrap">
+                    <span className="whitespace-nowrap">Rows per page:</span>
+                    <select
+                        value={limit}
+                        onChange={(e) => {
+                            const newLimit = Number(e.target.value);
+                            setLimit(newLimit);
+                            setPageIndex(0);
+                            setCursorStack([null]);
+                        }}
+                        className="pagination-limit-select rounded-full border border-[#d7dee5] bg-[#f8fafb] text-xs font-bold text-[#0f1419] outline-none cursor-pointer hover:bg-white transition"
+                    >
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        disabled={pageIndex === 0 || loading}
+                        onClick={handlePreviousPage}
+                        className="px-4 py-1.5 rounded-full border border-[#d7dee5] bg-[#f8fafb] text-xs font-bold text-[#0f1419] hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                    >
+                        ← Previous
+                    </button>
+                    <button
+                        type="button"
+                        disabled={!nextCursor || loading}
+                        onClick={handleNextPage}
+                        className="px-4 py-1.5 rounded-full bg-[#0d6b5f] text-white text-xs font-bold hover:bg-[#094d45] disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer shadow-sm border-0"
+                    >
+                        Next →
+                    </button>
+                </div>
+            </div>
 
             {splitTransaction && (
                 <SplitBillModal

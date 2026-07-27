@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { getApiErrorMessage } from "../../../shared/api/errors";
 import {
-    addMoney,
+    createRazorpayOrder,
     getWalletOwner,
     sendMoney,
+    setupTxPin,
+    verifyRazorpayPayment,
     withdrawMoney,
 } from "../wallet.api";
 import {
@@ -17,9 +19,13 @@ import {
 import type { SplitRequest, SplitUser } from "../../transactions/splits.api";
 import { Spinner } from "../../../shared/components/Spinner";
 import { Skeleton } from "../../../shared/components/Skeleton";
+import { getSpendVelocity } from "../../dashboard/dashboard.api";
+import { TransactionPinModal } from "../../../shared/components/TransactionPinModal";
 
 export function WalletPage() {
     const [balance, setBalance] = useState<number>(0);
+    const [hasTxPin, setHasTxPin] = useState(false);
+    const [upiId, setUpiId] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [addAmount, setAddAmount] = useState("");
@@ -29,12 +35,16 @@ export function WalletPage() {
     const [processing, setProcessing] = useState(false);
     const [actionError, setActionError] = useState("");
     const [pendingSplits, setPendingSplits] = useState<SplitRequest[]>([]);
-    
+    const [velocity, setVelocity] = useState<{ daysRemaining: number; dailyRate: number; message: string } | null>(null);
+
+    // PIN Modal states
+    const [pinModalOpen, setPinModalOpen] = useState(false);
+    const [pinAction, setPinAction] = useState<"send" | "withdraw" | "setup" | null>(null);
+
     const [search, setSearch] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
     const [suggestions, setSuggestions] = useState<SplitUser[]>([]);
     const [searchResults, setSearchResults] = useState<SplitUser[]>([]);
-    const [loadingSuggestions, setLoadingSuggestions] = useState(true);
     const [loadingSearch, setLoadingSearch] = useState(false);
 
     const fetchWalletData = useCallback(async () => {
@@ -45,6 +55,8 @@ export function WalletPage() {
                 getIncomingPendingSplits(),
             ]);
             setBalance(Number(userResponse.data.balance || 0));
+            setHasTxPin(!!userResponse.data.hasTxPin);
+            setUpiId(userResponse.data.upiId || "");
             setPendingSplits(splitsResponse.data.splits || []);
         } catch (err) {
             setError(
@@ -60,18 +72,18 @@ export function WalletPage() {
 
     useEffect(() => {
         fetchWalletData();
+        getSpendVelocity()
+            .then(res => setVelocity(res.data.velocity || null))
+            .catch(() => { });
     }, [fetchWalletData]);
 
     useEffect(() => {
         const fetchSuggestions = async () => {
             try {
-                setLoadingSuggestions(true);
                 const response = await getUsersSuggestions();
                 setSuggestions(response.data.users || []);
             } catch (err) {
                 console.error("Error fetching suggestions:", err);
-            } finally {
-                setLoadingSuggestions(false);
             }
         };
 
@@ -122,33 +134,8 @@ export function WalletPage() {
         const amount = Number(addAmount);
         if (!amount || amount <= 0) return;
 
-        setProcessing(true);
-        setActionError("");
-
-        try {
-            setBalance((currentBalance) => currentBalance + amount);
-            await addMoney(amount);
-            setAddAmount("");
-            toast.success("Added! Your balance is looking good.");
-            await fetchWalletData();
-        } catch (err) {
-            const message = getApiErrorMessage(err, "Failed to add money");
-            setActionError(message);
-            toast.error("Oops! Something went wrong while adding money.");
-            await fetchWalletData();
-        } finally {
-            setProcessing(false);
-        }
-    };
-
-    const handleSendMoney = async () => {
-        const amount = Number(sendAmount);
-
-        if (!selectedReceiver || !amount || amount <= 0) return;
-
-        if (amount > balance) {
-            setActionError("Insufficient balance");
-            toast.error("Not enough balance for this transfer.");
+        if (amount > 100000) {
+            toast.error("Maximum amount per transaction is ₹1,00,000.");
             return;
         }
 
@@ -156,51 +143,135 @@ export function WalletPage() {
         setActionError("");
 
         try {
-            setBalance((currentBalance) => currentBalance - amount);
-            await sendMoney(selectedReceiver.id, amount);
+            const res = await createRazorpayOrder(amount);
+            const order = res.data;
+
+            const options = {
+                key: order.keyId,
+                amount: order.amount,
+                currency: order.currency,
+                name: "InsightPay Wallet",
+                description: "Add Money to Wallet (Sandbox)",
+                order_id: order.id,
+                handler: async (response: any) => {
+                    try {
+                        setProcessing(true);
+                        await verifyRazorpayPayment({
+                            razorpay_order_id: response.razorpay_order_id || order.id,
+                            razorpay_payment_id: response.razorpay_payment_id || `pay_${Date.now()}`,
+                            razorpay_signature: response.razorpay_signature || "test_signature",
+                            amount,
+                        });
+                        setAddAmount("");
+                        toast.success("Payment Verified! ₹" + amount + " added to your wallet.");
+                        await fetchWalletData();
+                    } catch (err: any) {
+                        toast.error(getApiErrorMessage(err, "Payment verification failed"));
+                    } finally {
+                        setProcessing(false);
+                    }
+                },
+                prefill: {
+                    name: "InsightPay User",
+                    email: "user@insightpay.app",
+                },
+                theme: {
+                    color: "#0d6b5f",
+                },
+            };
+
+            if (typeof (window as any).Razorpay !== "undefined") {
+                const rzp = new (window as any).Razorpay(options);
+                rzp.open();
+            } else {
+                toast.loading("Simulating Razorpay Sandbox Payment...", { duration: 1500 });
+                setTimeout(async () => {
+                    try {
+                        await verifyRazorpayPayment({
+                            razorpay_order_id: order.id,
+                            razorpay_payment_id: `pay_${Date.now()}`,
+                            razorpay_signature: "test_signature",
+                            amount,
+                        });
+                        setAddAmount("");
+                        toast.success("Sandbox Payment Successful! ₹" + amount + " added.");
+                        await fetchWalletData();
+                    } catch (err: any) {
+                        toast.error(getApiErrorMessage(err, "Payment failed"));
+                    } finally {
+                        setProcessing(false);
+                    }
+                }, 1500);
+            }
+        } catch (err) {
+            const message = getApiErrorMessage(err, "Failed to initialize payment");
+            setActionError(message);
+            toast.error(message);
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const initiateSendMoney = () => {
+        const amount = Number(sendAmount);
+        if (!selectedReceiver || !amount || amount <= 0) return;
+        if (amount > 100000) { toast.error("Maximum transfer amount is ₹1,00,000."); return; }
+        if (amount > balance) { toast.error("Not enough balance for this transfer."); return; }
+
+        if (!hasTxPin) {
+            setPinAction("setup");
+            setPinModalOpen(true);
+            return;
+        }
+        setPinAction("send");
+        setPinModalOpen(true);
+    };
+
+    const initiateWithdrawMoney = () => {
+        const amount = Number(withdrawAmount);
+        if (!amount || amount <= 0) return;
+        if (amount > 100000) { toast.error("Maximum withdrawal amount is ₹1,00,000."); return; }
+        if (amount > balance) { toast.error("You don't have enough to withdraw that much."); return; }
+
+        if (!hasTxPin) {
+            setPinAction("setup");
+            setPinModalOpen(true);
+            return;
+        }
+        setPinAction("withdraw");
+        setPinModalOpen(true);
+    };
+
+    const handlePinSubmit = async (pin: string) => {
+        if (pinAction === "setup") {
+            const res = await setupTxPin(pin);
+            setHasTxPin(true);
+            setUpiId(res.data.upiId);
+            toast.success("6-Digit Transaction PIN set up successfully!");
+            setPinModalOpen(false);
+            return;
+        }
+
+        if (pinAction === "send") {
+            const amount = Number(sendAmount);
+            if (!selectedReceiver || !amount) return;
+            setBalance((curr) => curr - amount);
+            await sendMoney(selectedReceiver.id, amount, pin);
             setSelectedReceiver(null);
             setSendAmount("");
             setSearch("");
             toast.success("Sent! Your money is on its way.");
             await fetchWalletData();
-        } catch (err) {
-            const message = getApiErrorMessage(err, "Transfer failed");
-            setActionError(message);
-            toast.error("Transfer failed. Please check the details.");
-            await fetchWalletData();
-        } finally {
-            setProcessing(false);
-        }
-    };
-
-    const handleWithdrawMoney = async () => {
-        const amount = Number(withdrawAmount);
-
-        if (!amount || amount <= 0) return;
-
-        if (amount > balance) {
-            setActionError("Insufficient balance");
-            toast.error("You don't have enough to withdraw that much.");
-            return;
-        }
-
-        setProcessing(true);
-        setActionError("");
-
-        try {
-            setBalance((currentBalance) => currentBalance - amount);
-            await withdrawMoney(amount);
+        } else if (pinAction === "withdraw") {
+            const amount = Number(withdrawAmount);
+            if (!amount) return;
+            setBalance((curr) => curr - amount);
+            await withdrawMoney(amount, pin);
             setWithdrawAmount("");
-            toast.success("Done! Your withdrawal is being processed.");
+            toast.success("Withdrawal request processed successfully.");
             await fetchWalletData();
-        } catch (err) {
-            const message = getApiErrorMessage(err, "Withdrawal failed");
-            setActionError(message);
-            toast.error("Withdrawal failed. Try again in a bit?");
-            await fetchWalletData();
-        } finally {
-            setProcessing(false);
         }
+        setPinModalOpen(false);
     };
 
     const handlePaySplitShare = async (splitId: string, amount: number) => {
@@ -280,19 +351,6 @@ export function WalletPage() {
                             <Skeleton width="w-full" height="h-12" rounded="rounded-lg" />
                         </div>
                     </div>
-
-                    <div className="panel space-y-4">
-                        <Skeleton width="w-28" height="h-6" rounded="rounded-md" />
-                        <div className="space-y-2">
-                            <Skeleton width="w-20" height="h-3.5" rounded="rounded-md" />
-                            <Skeleton width="w-full" height="h-10" rounded="rounded-lg" />
-                        </div>
-                        <div className="space-y-2">
-                            <Skeleton width="w-16" height="h-3.5" rounded="rounded-md" />
-                            <Skeleton width="w-full" height="h-10" rounded="rounded-lg" />
-                        </div>
-                        <Skeleton width="w-full" height="h-12" rounded="rounded-lg" />
-                    </div>
                 </section>
             </main>
         );
@@ -312,8 +370,36 @@ export function WalletPage() {
             </header>
 
             <section className="panel balance-panel">
-                <p>Current Balance</p>
-                <h2>₹ {balance.toFixed(2)}</h2>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div>
+                        <p style={{ margin: 0, fontSize: "0.85rem", color: "#64748b" }}>Current Balance</p>
+                        <h2 style={{ fontSize: "2rem", fontWeight: 800, color: "#0f1419", margin: "0.25rem 0" }}>₹ {balance.toFixed(2)}</h2>
+                        {upiId && (
+                            <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 600, color: "#0d6b5f" }}>
+                                UPI ID: <span style={{ fontFamily: "monospace", letterSpacing: "0.5px" }}>{upiId}</span>
+                            </p>
+                        )}
+                    </div>
+                </div>
+
+                {velocity && velocity.daysRemaining <= 30 && (
+                    <div style={{
+                        marginTop: "0.75rem",
+                        padding: "0.5rem 0.9rem",
+                        borderRadius: "999px",
+                        background: "#fffbeb",
+                        border: "1px solid #fde68a",
+                        color: "#b45309",
+                        fontSize: "0.8rem",
+                        fontWeight: 600,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        width: "fit-content"
+                    }}>
+                        <span>{velocity.message}</span>
+                    </div>
+                )}
             </section>
 
             {pendingSplits.length > 0 && (
@@ -354,26 +440,29 @@ export function WalletPage() {
                                             onClick={() => handlePaySplitShare(split.id, Number(split.amountOwed))}
                                             disabled={processing}
                                             style={{
-                                                padding: "0.45rem 1rem",
-                                                borderRadius: "999px",
+                                                padding: "0.4rem 0.85rem",
+                                                borderRadius: "8px",
+                                                backgroundColor: "#0d6b5f",
+                                                color: "#ffffff",
+                                                fontWeight: 700,
                                                 fontSize: "0.8rem",
-                                                margin: 0
+                                                border: "none"
                                             }}
                                         >
                                             Pay
                                         </button>
                                         <button
                                             type="button"
-                                            className="secondary-button"
                                             onClick={() => handleRejectSplitShare(split.id)}
                                             disabled={processing}
                                             style={{
-                                                padding: "0.45rem 1rem",
-                                                borderRadius: "999px",
+                                                padding: "0.4rem 0.85rem",
+                                                borderRadius: "8px",
+                                                backgroundColor: "#f1f5f9",
+                                                color: "#475569",
+                                                fontWeight: 700,
                                                 fontSize: "0.8rem",
-                                                border: "1px solid #b42318",
-                                                color: "#b42318",
-                                                margin: 0
+                                                border: "1px solid #dce4e8"
                                             }}
                                         >
                                             Reject
@@ -390,79 +479,150 @@ export function WalletPage() {
 
             <section className="wallet-actions">
                 <div className="wallet-actions-row">
-                    <div className="panel">
-                        <h2>Add Money</h2>
-                        <label>
-                            Amount
-                            <input
-                                type="number"
-                                min="1"
-                                value={addAmount}
-                                onChange={(event) =>
-                                    setAddAmount(event.target.value)
-                                }
-                            />
-                        </label>
+                    <div className="panel flex flex-col justify-between h-full">
+                        <div>
+                            <h2>Add Funds to Wallet</h2>
+                            <div style={{
+                                marginBottom: "1rem",
+                                padding: "0.65rem 0.85rem",
+                                borderRadius: "12px",
+                                backgroundColor: "#f8fafb",
+                                border: "1px solid #e8ecf0",
+                                fontSize: "0.8rem",
+                                height: "76px",
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "center",
+                                boxSizing: "border-box"
+                            }}>
+                                <span style={{ color: "#64748b", fontWeight: 500, display: "block", marginBottom: "0.15rem" }}>Payment Source:</span>
+                                <select style={{
+                                    width: "100%",
+                                    border: "none",
+                                    background: "transparent",
+                                    fontSize: "0.85rem",
+                                    fontWeight: 700,
+                                    color: "#0f1419",
+                                    outline: "none",
+                                    cursor: "pointer",
+                                    padding: 0,
+                                    margin: 0,
+                                    height: "24px",
+                                    lineHeight: "24px"
+                                }}>
+                                    <option>HDFC Bank •••• 8821 (UPI AutoPay)</option>
+                                    <option>ICICI NetBanking</option>
+                                    <option>Saved Debit Card (•••• 4242)</option>
+                                </select>
+                            </div>
+                            <label>
+                                Amount (INR)
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="100000"
+                                    placeholder="Enter amount (Max ₹1,00,000)"
+                                    value={addAmount}
+                                    onChange={(event) =>
+                                        setAddAmount(event.target.value)
+                                    }
+                                />
+                            </label>
+                        </div>
                         <button
                             type="button"
                             onClick={handleAddMoney}
                             disabled={processing}
-                            className="w-full flex items-center justify-center"
+                            className="w-full flex items-center justify-center rounded-full mt-4"
                         >
-                            {processing ? <Spinner size="h-5 w-5" color="text-white" /> : "Add Money"}
+                            {processing ? <Spinner size="h-5 w-5" color="text-white" /> : "Proceed to Pay"}
                         </button>
                     </div>
 
-                    <div className="panel">
-                        <h2>Withdraw Money</h2>
-                        <label>
-                            Amount
-                            <input
-                                type="number"
-                                min="1"
-                                value={withdrawAmount}
-                                onChange={(event) =>
-                                    setWithdrawAmount(event.target.value)
-                                }
-                            />
-                        </label>
+                    <div className="panel flex flex-col justify-between h-full">
+                        <div>
+                            <h2>Transfer to Bank Account</h2>
+                            <div style={{
+                                marginBottom: "1rem",
+                                padding: "0.65rem 0.85rem",
+                                borderRadius: "12px",
+                                backgroundColor: "#f0fdf4",
+                                border: "1px solid #bbf7d0",
+                                fontSize: "0.8rem",
+                                color: "#166534",
+                                height: "76px",
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "center",
+                                boxSizing: "border-box"
+                            }}>
+                                <span style={{ color: "#166534", fontWeight: 600, display: "block", marginBottom: "0.15rem" }}>Destination Bank:</span>
+                                <strong style={{
+                                    fontSize: "0.85rem",
+                                    fontWeight: 700,
+                                    display: "block",
+                                    height: "24px",
+                                    lineHeight: "24px",
+                                    margin: 0,
+                                    padding: 0,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap"
+                                }}>
+                                    HDFC Savings A/C •••• 4920 (Instant IMPS)
+                                </strong>
+                            </div>
+                            <label>
+                                Transfer Amount (INR)
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="100000"
+                                    placeholder="Enter amount (Max ₹1,00,000)"
+                                    value={withdrawAmount}
+                                    onChange={(event) =>
+                                        setWithdrawAmount(event.target.value)
+                                    }
+                                />
+                            </label>
+                        </div>
                         <button
                             type="button"
-                            onClick={handleWithdrawMoney}
+                            onClick={initiateWithdrawMoney}
                             disabled={processing}
-                            className="w-full flex items-center justify-center"
+                            className="w-full flex items-center justify-center rounded-full mt-4"
                         >
-                            {processing ? <Spinner size="h-5 w-5" color="text-white" /> : "Withdraw"}
+                            {processing ? <Spinner size="h-5 w-5" color="text-white" /> : "Transfer to Bank"}
                         </button>
                     </div>
                 </div>
 
                 <div className="panel">
                     <h2>Send Money</h2>
-                    
+
                     {selectedReceiver ? (
-                        <div 
-                            style={{ 
-                                display: "flex", 
-                                alignItems: "center", 
-                                justifyContent: "space-between", 
-                                padding: "0.75rem 1rem", 
-                                borderRadius: "12px", 
-                                border: "1px solid #bbf7d0", 
-                                backgroundColor: "#f0fdf4", 
-                                marginBottom: "1rem" 
+                        <div
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                padding: "0.75rem 1rem",
+                                borderRadius: "12px",
+                                border: "1px solid #bbf7d0",
+                                backgroundColor: "#f0fdf4",
+                                marginBottom: "1rem"
                             }}
                         >
                             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", minWidth: 0 }}>
-                                <div 
-                                    style={{ 
-                                        width: "36px", 
-                                        height: "36px", 
-                                        borderRadius: "50%", 
-                                        backgroundColor: "#bbf7d0", 
-                                        border: "1px solid #86efac", 
-                                        display: "flex", 
-                                        alignItems: "center", 
+                                <div
+                                    style={{
+                                        width: "36px",
+                                        height: "36px",
+                                        borderRadius: "50%",
+                                        backgroundColor: "#bbf7d0",
+                                        border: "1px solid #86efac",
+                                        display: "flex",
+                                        alignItems: "center",
                                         justifyContent: "center",
                                         fontSize: "0.85rem",
                                         fontWeight: 700,
@@ -485,10 +645,10 @@ export function WalletPage() {
                                 type="button"
                                 onClick={() => setSelectedReceiver(null)}
                                 className="secondary-button"
-                                style={{ 
-                                    margin: 0, 
-                                    padding: "0.3rem 0.75rem", 
-                                    fontSize: "0.75rem", 
+                                style={{
+                                    margin: 0,
+                                    padding: "0.3rem 0.75rem",
+                                    fontSize: "0.75rem",
                                     borderRadius: "999px",
                                     border: "1px solid #dce4e8",
                                     backgroundColor: "#ffffff",
@@ -499,64 +659,58 @@ export function WalletPage() {
                             </button>
                         </div>
                     ) : (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem", marginBottom: "1rem" }}>
+                        <div style={{ marginBottom: "1rem" }}>
                             <label style={{ display: "grid", gap: "0.35rem", color: "#475569", fontSize: "0.85rem", fontWeight: 600 }}>
                                 Search Contact
                                 <div style={{ position: "relative", width: "100%" }}>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Search by name or email" 
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name or email"
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
-                                        style={{ 
-                                            padding: "0.65rem 2.25rem 0.65rem 0.85rem", 
-                                            fontSize: "0.9rem", 
-                                            borderRadius: "10px", 
-                                            border: "1px solid #dce4e8", 
+                                        style={{
+                                            padding: "0.65rem 2.25rem 0.65rem 0.85rem",
+                                            fontSize: "0.9rem",
+                                            borderRadius: "10px",
+                                            border: "1px solid #dce4e8",
                                             width: "100%",
                                             marginBottom: 0
                                         }}
                                     />
                                     {loadingSearch && (
-                                        <div style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)" }}>
-                                            <Spinner size="h-4 w-4" color="text-emerald-800" />
+                                        <div style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)" }}>
+                                            <Spinner size="h-4 w-4" color="text-gray-400" />
                                         </div>
                                     )}
                                 </div>
                             </label>
 
-                            <div 
-                                style={{ 
-                                    maxHeight: "160px", 
-                                    overflowY: "auto", 
-                                    border: "1px solid #edf1f3", 
+                            <div
+                                style={{
+                                    maxHeight: "160px",
+                                    overflowY: "auto",
+                                    border: "1px solid #edf1f3",
                                     borderRadius: "14px",
                                     padding: "0.5rem",
-                                    backgroundColor: "#ffffff"
+                                    backgroundColor: "#ffffff",
+                                    marginTop: "0.5rem"
                                 }}
                             >
-                                {search === "" ? (
-                                    loadingSuggestions ? (
-                                        <div style={{ textAlign: "center", padding: "1rem 0" }}>
-                                            <p style={{ color: "#6b7280", fontSize: "0.8rem" }}>Loading suggestions…</p>
-                                        </div>
-                                    ) : suggestions.length === 0 ? (
-                                        <p style={{ textAlign: "center", padding: "0.75rem 0", color: "#9aa3ad", fontSize: "0.8rem" }}>
-                                            No suggestions available.
+                                {search.length >= 2 ? (
+                                    searchResults.length === 0 ? (
+                                        <p style={{ textAlign: "center", padding: "1rem 0", color: "#9aa3ad", fontSize: "0.85rem" }}>
+                                            No contacts found matching "{search}".
                                         </p>
                                     ) : (
-                                        <div>
-                                            <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "#6b7280", margin: "0.15rem 0.5rem 0.35rem" }}>
-                                                Suggested
-                                            </p>
-                                            {suggestions.map((user) => (
+                                        <div style={{ display: "grid", gap: "0.25rem" }}>
+                                            {searchResults.map((user) => (
                                                 <div
                                                     key={user.id}
                                                     onClick={() => setSelectedReceiver(user)}
                                                     style={{
                                                         display: "flex",
                                                         alignItems: "center",
-                                                        gap: "0.75rem",
+                                                        gap: "0.6rem",
                                                         padding: "0.5rem 0.6rem",
                                                         borderRadius: "8px",
                                                         cursor: "pointer",
@@ -564,15 +718,15 @@ export function WalletPage() {
                                                     }}
                                                     className="hover:bg-[#f8fafb]"
                                                 >
-                                                    <div 
-                                                        style={{ 
-                                                            width: "30px", 
-                                                            height: "30px", 
-                                                            borderRadius: "50%", 
-                                                            backgroundColor: "#f1f5f9", 
-                                                            border: "1px solid #e8ecf0", 
-                                                            display: "flex", 
-                                                            alignItems: "center", 
+                                                    <div
+                                                        style={{
+                                                            width: "30px",
+                                                            height: "30px",
+                                                            borderRadius: "50%",
+                                                            backgroundColor: "#f1f5f9",
+                                                            border: "1px solid #e8ecf0",
+                                                            display: "flex",
+                                                            alignItems: "center",
                                                             justifyContent: "center",
                                                             fontSize: "0.75rem",
                                                             fontWeight: 700,
@@ -593,28 +747,19 @@ export function WalletPage() {
                                             ))}
                                         </div>
                                     )
-                                ) : search.length < 2 ? (
-                                    <p style={{ textAlign: "center", padding: "1rem 0", color: "#6b7280", fontSize: "0.8rem" }}>
-                                        Type at least 2 characters to search...
-                                    </p>
-                                ) : loadingSearch ? (
-                                    <div style={{ textAlign: "center", padding: "1rem 0" }}>
-                                        <p style={{ color: "#6b7280", fontSize: "0.8rem" }}>Searching contacts…</p>
-                                    </div>
-                                ) : searchResults.length === 0 ? (
-                                    <p style={{ textAlign: "center", padding: "0.75rem 0", color: "#9aa3ad", fontSize: "0.8rem" }}>
-                                        No contacts found matching "{search}".
-                                    </p>
                                 ) : (
-                                    <div>
-                                        {searchResults.map((user) => (
+                                    <div style={{ display: "grid", gap: "0.25rem" }}>
+                                        <p style={{ margin: "0.25rem 0.5rem", fontSize: "0.75rem", fontWeight: 700, color: "#94a3b8", textTransform: "uppercase" }}>
+                                            Frequent Contacts
+                                        </p>
+                                        {suggestions.map((user) => (
                                             <div
                                                 key={user.id}
                                                 onClick={() => setSelectedReceiver(user)}
                                                 style={{
                                                     display: "flex",
                                                     alignItems: "center",
-                                                    gap: "0.75rem",
+                                                    gap: "0.6rem",
                                                     padding: "0.5rem 0.6rem",
                                                     borderRadius: "8px",
                                                     cursor: "pointer",
@@ -622,15 +767,15 @@ export function WalletPage() {
                                                 }}
                                                 className="hover:bg-[#f8fafb]"
                                             >
-                                                <div 
-                                                    style={{ 
-                                                        width: "30px", 
-                                                        height: "30px", 
-                                                        borderRadius: "50%", 
-                                                        backgroundColor: "#f1f5f9", 
-                                                        border: "1px solid #e8ecf0", 
-                                                        display: "flex", 
-                                                        alignItems: "center", 
+                                                <div
+                                                    style={{
+                                                        width: "30px",
+                                                        height: "30px",
+                                                        borderRadius: "50%",
+                                                        backgroundColor: "#f1f5f9",
+                                                        border: "1px solid #e8ecf0",
+                                                        display: "flex",
+                                                        alignItems: "center",
                                                         justifyContent: "center",
                                                         fontSize: "0.75rem",
                                                         fontWeight: 700,
@@ -656,10 +801,12 @@ export function WalletPage() {
                     )}
 
                     <label>
-                        Amount
+                        Amount (INR)
                         <input
                             type="number"
                             min="1"
+                            max="100000"
+                            placeholder="Enter amount (Max ₹1,00,000)"
                             value={sendAmount}
                             onChange={(event) =>
                                 setSendAmount(event.target.value)
@@ -668,7 +815,7 @@ export function WalletPage() {
                     </label>
                     <button
                         type="button"
-                        onClick={handleSendMoney}
+                        onClick={initiateSendMoney}
                         disabled={processing || !selectedReceiver}
                         className="w-full flex items-center justify-center"
                     >
@@ -676,6 +823,20 @@ export function WalletPage() {
                     </button>
                 </div>
             </section>
+
+            <TransactionPinModal
+                isOpen={pinModalOpen}
+                onClose={() => setPinModalOpen(false)}
+                onSubmit={handlePinSubmit}
+                isSetup={pinAction === "setup"}
+                title={pinAction === "withdraw" ? "Authorize Bank Transfer" : "Authorize Money Transfer"}
+                description={
+                    pinAction === "withdraw"
+                        ? `Enter your 6-digit PIN to transfer ₹${withdrawAmount} to your linked bank account`
+                        : `Enter your 6-digit PIN to send ₹${sendAmount} to ${selectedReceiver?.name}`
+                }
+                actionLabel={pinAction === "withdraw" ? "Confirm Bank Transfer" : "Authorize & Send"}
+            />
         </main>
     );
 }

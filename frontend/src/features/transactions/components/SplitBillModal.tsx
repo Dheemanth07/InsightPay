@@ -382,13 +382,26 @@ export function SplitBillModal({ transaction, onClose, onSuccess }: SplitBillMod
                                     fontSize: "0.85rem" 
                                 }}
                             >
-                                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontWeight: 700 }}>
                                     <span>Splitting with:</span>
                                     <span>{selectedUsers.length} contact{selectedUsers.length > 1 ? "s" : ""}</span>
                                 </div>
-                                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.35rem" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.35rem", alignItems: "center" }}>
                                     <span>Each person owes:</span>
                                     <strong>INR {splitDetails.share.toFixed(2)}</strong>
+                                </div>
+                                <div style={{
+                                    marginTop: "0.6rem",
+                                    paddingTop: "0.5rem",
+                                    borderTop: "1px stroke rgba(22, 101, 52, 0.15)",
+                                    fontSize: "0.75rem",
+                                    fontWeight: 600,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.35rem",
+                                    color: "#0d6b5f"
+                                }}>
+                                    <span>Suggested: Split equally among {splitDetails.totalPeople} participants ({splitDetails.totalPeople - 1} contacts + you)</span>
                                 </div>
                             </div>
                         )}

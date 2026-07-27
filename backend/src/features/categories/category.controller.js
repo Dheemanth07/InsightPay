@@ -2,6 +2,7 @@ import {
     createCategoryForUser,
     deleteCategoryForUser,
     getCategoriesForUser,
+    updateCategoryBudgetForUser,
 } from "./category.service.js";
 
 export const createCategory = async (req, res) => {
@@ -35,6 +36,23 @@ export const deleteCategory = async (req, res) => {
         return res.json({ message: "Category deleted safely" });
     } catch (err) {
         console.error("Error deleting category:", err);
+        return res
+            .status(err.statusCode || 500)
+            .json({ message: err.message || "Internal server error" });
+    }
+};
+
+export const updateCategoryBudget = async (req, res) => {
+    try {
+        await updateCategoryBudgetForUser(
+            req.user.id,
+            req.params.id,
+            req.body.monthlyBudget,
+        );
+
+        return res.json({ message: "Category budget updated" });
+    } catch (err) {
+        console.error("Error updating category budget:", err);
         return res
             .status(err.statusCode || 500)
             .json({ message: err.message || "Internal server error" });

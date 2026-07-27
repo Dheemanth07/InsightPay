@@ -86,9 +86,10 @@ model Card {
 
 // Category Model
 model Category {
-  id   String       @id @default(uuid())
-  name String
-  type CategoryType
+  id            String       @id @default(uuid())
+  name          String
+  type          CategoryType
+  monthlyBudget Decimal?
 
   isDefault Boolean @default(false)
   isSystem  Boolean @default(false)

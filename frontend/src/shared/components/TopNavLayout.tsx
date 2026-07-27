@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../features/auth/auth.context";
 import { Skeleton } from "./Skeleton";
 import { InsightPayLogo } from "./InsightPayLogo";
@@ -16,7 +16,13 @@ const tabs = [
 export function TopNavLayout() {
     const { logout, loading } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    // Refs for the sliding indicator
+    const tabsContainerRef = useRef<HTMLDivElement>(null);
+    const sliderRef = useRef<HTMLDivElement>(null);
+    const linkRefs = useRef<(HTMLAnchorElement | null)[]>([]);
 
     const handleLogout = () => {
         navigate("/");
@@ -25,35 +31,71 @@ export function TopNavLayout() {
         }, 150);
     };
 
+    // Move the sliding indicator to match the active tab
+    useEffect(() => {
+        const container = tabsContainerRef.current;
+        const slider = sliderRef.current;
+        if (!container || !slider) return;
+
+        const activeIndex = tabs.findIndex((t) =>
+            location.pathname.startsWith(t.path)
+        );
+        if (activeIndex === -1) {
+            slider.style.opacity = "0";
+            return;
+        }
+
+        const activeEl = linkRefs.current[activeIndex];
+        if (!activeEl) return;
+
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeEl.getBoundingClientRect();
+
+        slider.style.opacity = "1";
+        slider.style.width = `${activeRect.width}px`;
+        slider.style.transform = `translateX(${activeRect.left - containerRect.left - 3}px)`;
+    }, [location.pathname]);
+
     return (
         <div className="top-nav-layout">
-            <div className="top-nav-bar flex items-center justify-between">
+            <div className="top-nav-bar">
                 {/* Brand / Logo */}
                 <NavLink
                     to="/dashboard"
-                    className="flex items-center space-x-1.5 tracking-tight hover:scale-[1.02] transition-transform duration-200 ease-out select-none mr-4 no-underline"
+                    className="flex items-center space-x-1.5 tracking-tight hover:scale-[1.02] transition-transform duration-200 ease-out select-none mr-2 no-underline shrink-0"
                 >
                     <InsightPayLogo className="w-8 h-8" />
-                    <span className="text-2xl font-extrabold text-[#0f1419]">Insight</span>
-                    <span className="text-2xl font-medium text-[#0d6b5f]">Pay</span>
+                    <span className="text-xl font-extrabold text-[#0f1419]">Insight</span>
+                    <span className="text-xl font-medium text-[#0d6b5f]">Pay</span>
                 </NavLink>
 
-                {/* Main desktop navigation buttons */}
-                <div className="top-nav-scroll hidden md:flex">
-                    {tabs.map((tab) => (
-                        <NavLink
-                            key={tab.path}
-                            to={tab.path}
-                            className={({ isActive }) =>
-                                `top-nav-link ${isActive ? "active" : ""}`
-                            }
-                        >
-                            {tab.label}
-                        </NavLink>
-                    ))}
+                {/* Desktop sliding tabs */}
+                <div className="top-nav-tabs hidden md:flex" ref={tabsContainerRef}>
+                    {/* Sliding indicator */}
+                    <div
+                        ref={sliderRef}
+                        className="top-nav-slider"
+                        style={{ opacity: 0, width: 0 }}
+                        aria-hidden="true"
+                    />
+                    {/* Tab links */}
+                    <div className="top-nav-scroll">
+                        {tabs.map((tab, i) => (
+                            <NavLink
+                                key={tab.path}
+                                to={tab.path}
+                                ref={(el) => { linkRefs.current[i] = el; }}
+                                className={({ isActive }) =>
+                                    `top-nav-link ${isActive ? "active" : ""}`
+                                }
+                            >
+                                {tab.label}
+                            </NavLink>
+                        ))}
+                    </div>
                 </div>
 
-                {/* Desktop Logout Button */}
+                {/* Desktop Logout */}
                 <button
                     type="button"
                     className="top-nav-logout hidden md:block"
@@ -63,20 +105,14 @@ export function TopNavLayout() {
                     Logout
                 </button>
 
-                {/* Hamburger menu icon button visible only on mobile */}
+                {/* Hamburger — mobile only */}
                 <button
                     type="button"
                     className="flex md:hidden items-center justify-center p-2 rounded-lg text-[#0d6b5f] hover:bg-gray-100 border border-gray-200 bg-transparent m-0 focus:outline-none cursor-pointer"
                     onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                     aria-label="Toggle Navigation Menu"
                 >
-                    <svg
-                        className="h-6 w-6"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                    >
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                         {isMobileMenuOpen ? (
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                         ) : (
@@ -86,9 +122,9 @@ export function TopNavLayout() {
                 </button>
             </div>
 
-            {/* Mobile Dropdown Menu */}
+            {/* Mobile Dropdown */}
             {isMobileMenuOpen && (
-                <div className="md:hidden bg-white border-b border-[#e6eaee] px-6 py-4 flex flex-col gap-2 shadow-sm animate-fade-in">
+                <div className="md:hidden fixed top-18 left-4 right-4 z-40 bg-white/95 backdrop-blur-md border border-[#e6eaee] rounded-2xl px-4 py-4 flex flex-col gap-2 shadow-lg animate-fade-in">
                     {tabs.map((tab) => (
                         <NavLink
                             key={tab.path}

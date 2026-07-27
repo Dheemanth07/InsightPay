@@ -37,7 +37,7 @@ export const validateQR = async (req, res) => {
 
 export const confirmQRPayment = async (req, res) => {
     try {
-        const result = await confirmQrPayment(req.user.id, req.body.qrData);
+        const result = await confirmQrPayment(req.user.id, req.body.qrData, req.body.pin);
 
         return res.status(200).json({
             message: "Payment successful",

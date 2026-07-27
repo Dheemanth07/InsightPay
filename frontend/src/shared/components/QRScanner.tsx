@@ -225,23 +225,48 @@ export const QRScanner: React.FC<Props> = ({ onDetected, onClose }) => {
                     <canvas ref={canvasRef} style={{ display: "none" }} />
                 </div>
             ) : (
-                <section>
-                    <p>
-                        Camera not available or blocked. You can upload a QR
-                        image instead.
-                    </p>
-                    <label htmlFor="qr-file-input">Upload QR Code Image:</label>
-                    <input
-                        id="qr-file-input"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                            handleFile(
-                                e.target.files ? e.target.files[0] : undefined,
-                            )
-                        }
-                    />
-                    {uploading && <p>Processing image…</p>}
+                <section className="p-6 bg-white rounded-2xl border border-gray-200 text-center space-y-4 shadow-sm my-4">
+                    <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 className="text-base font-extrabold text-[#0f1419]">Live Camera Unavailable over HTTP</h3>
+                        <p className="text-xs text-[#64748b] mt-1 max-w-sm mx-auto leading-relaxed">
+                            Mobile browsers require <strong>HTTPS</strong> for live webcam access over IP. Select or take a photo of the QR code below to complete payment instantly.
+                        </p>
+                    </div>
+                    <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                        <label
+                            htmlFor="qr-file-input"
+                            className="h-10 px-6 inline-flex items-center justify-center gap-2 rounded-full bg-[#0d6b5f] text-white text-xs font-bold hover:bg-[#094d45] transition cursor-pointer shadow-sm border-0 m-0 box-border leading-none"
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>Select or Take QR Photo</span>
+                        </label>
+                        <input
+                            id="qr-file-input"
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                            onChange={(e) =>
+                                handleFile(
+                                    e.target.files ? e.target.files[0] : undefined,
+                                )
+                            }
+                        />
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="h-10 px-6 inline-flex items-center justify-center border border-gray-300 text-gray-700 bg-white rounded-full text-xs font-bold hover:bg-gray-50 transition cursor-pointer m-0 box-border leading-none"
+                        >
+                            Close
+                        </button>
+                    </div>
                     <canvas ref={canvasRef} style={{ display: "none" }} />
                 </section>
             )}

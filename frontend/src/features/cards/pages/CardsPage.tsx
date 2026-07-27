@@ -337,7 +337,7 @@ export function CardsPage() {
                                         type="button"
                                         onClick={() => handleSetPrimaryCard(cards[activeIndex].id)}
                                         disabled={processing}
-                                        className="h-8 px-4 inline-flex items-center justify-center text-xs font-semibold text-[#0d6b5f] bg-[#e8f5f3] border border-[#b8dbd7] hover:bg-[#0d6b5f] hover:text-white rounded-full transition-all cursor-pointer shadow-sm !m-0 !py-0 leading-none"
+                                        className="h-8 px-4 inline-flex items-center justify-center text-xs font-semibold text-[#0d6b5f] bg-[#e8f5f3] border border-[#b8dbd7] hover:bg-[#0d6b5f] hover:text-white rounded-full transition-all cursor-pointer shadow-sm m-0! py-0! leading-none"
                                     >
                                         Set as Primary
                                     </button>
@@ -350,7 +350,7 @@ export function CardsPage() {
                                     type="button"
                                     onClick={() => requestDeleteCard(cards[activeIndex].id)}
                                     disabled={processing}
-                                    className="h-8 px-4 inline-flex items-center justify-center text-xs font-semibold text-red-600 bg-white border border-red-500/40 hover:bg-red-50/50 hover:border-red-600 rounded-full transition-all cursor-pointer shadow-sm !m-0 !py-0 leading-none"
+                                    className="h-8 px-4 inline-flex items-center justify-center text-xs font-semibold text-red-600 bg-white border border-red-500/40 hover:bg-red-50/50 hover:border-red-600 rounded-full transition-all cursor-pointer shadow-sm m-0! py-0! leading-none"
                                 >
                                     Remove Card
                                 </button>

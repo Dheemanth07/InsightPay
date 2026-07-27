@@ -57,21 +57,20 @@ app.use(cookieParser());
 app.use(express.json());
 
 // ── CSRF protection (double-submit cookie, session-less) ──────────────────────
-// Uses csrf-csrf which works without express-session by storing the token in a
-// signed HttpOnly cookie and validating it against the x-csrf-token request header.
 const isProd = process.env.NODE_ENV === "production";
 
 const { generateToken, doubleCsrfProtection } = doubleCsrf({
-  getSecret: () => process.env.CSRF_SECRET || "insightpay-csrf-secret-change-in-prod",
-  // __Host- prefix enforces Secure + no Domain + path=/ in production
-  // Plain name in dev to avoid rejection on http://localhost
-  cookieName: isProd ? "__Host-insightpay.x-csrf-token" : "insightpay.x-csrf-token",
+  getSecret: () => process.env.CSRF_SECRET || "insightpay-csrf-secret-fallback",
+  // Simple alphanumeric name — __Host- prefix with dots caused csrf-csrf v3
+  // to throw a ForbiddenError at initialization time on production
+  cookieName: "insightpay-csrf-token",
   cookieOptions: {
     httpOnly: true,
     sameSite: "strict",
     secure: isProd,
     path: "/",
   },
+  size: 64,
   getTokenFromRequest: (req) => req.headers["x-csrf-token"],
 });
 

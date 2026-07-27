@@ -13,7 +13,7 @@
         "@tremor/react": "^3.18.7",
         "@vercel/analytics": "^2.0.1",
         "@vercel/speed-insights": "^2.0.0",
-        "axios": "^1.13.5",
+        "axios": "^1.18.0",
         "jspdf": "^4.2.1",
         "jspdf-autotable": "^5.0.8",
         "jsqr": "^1.4.0",

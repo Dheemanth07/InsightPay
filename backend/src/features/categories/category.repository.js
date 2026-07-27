@@ -42,3 +42,10 @@ export const deleteCategorySafely = (userId, categoryId) => {
         await tx.category.delete({ where: { id: categoryId } });
     });
 };
+
+export const updateCategoryBudgetRepo = (userId, categoryId, monthlyBudget) => {
+    return prisma.category.updateMany({
+        where: { id: categoryId, userId },
+        data: { monthlyBudget: monthlyBudget !== null ? monthlyBudget : null },
+    });
+};

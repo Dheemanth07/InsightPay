@@ -3,6 +3,7 @@ import {
     deleteCategorySafely,
     findCategoriesByUserId,
     findCategoryByNameForUser,
+    updateCategoryBudgetRepo,
 } from "./category.repository.js";
 
 export const createCategoryForUser = async (userId, { name, type }) => {
@@ -59,4 +60,15 @@ export const deleteCategoryForUser = async (userId, categoryId) => {
 
         throw err;
     }
+};
+
+export const updateCategoryBudgetForUser = async (userId, categoryId, monthlyBudget) => {
+    const budgetVal = monthlyBudget !== null && monthlyBudget !== undefined ? Number(monthlyBudget) : null;
+    if (budgetVal !== null && (isNaN(budgetVal) || budgetVal < 0)) {
+        const error = new Error("Monthly budget must be a positive number");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    return updateCategoryBudgetRepo(userId, categoryId, budgetVal);
 };

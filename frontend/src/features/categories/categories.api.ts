@@ -12,3 +12,7 @@ export const createCategory = (data: { name: string; type: string }) => {
 export const deleteCategory = (categoryId: string) => {
     return apiClient.delete(`/categories/${categoryId}`);
 };
+
+export const updateCategoryBudgetApi = (categoryId: string, monthlyBudget: number | null) => {
+    return apiClient.patch<{ message: string }>(`/categories/${categoryId}/budget`, { monthlyBudget });
+};

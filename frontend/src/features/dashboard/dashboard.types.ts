@@ -17,6 +17,10 @@ export type Subscription = {
 export type UpcomingLiabilitiesResponse = {
     upcomingLiabilities: Subscription[];
     totalAmount: number;
+    userBalance?: number;
+    insufficientBalanceWarning?: boolean;
+    autoDeductedEvents?: { id: string; merchantName: string; amount: number }[];
+    insufficientBalanceEvents?: { id: string; merchantName: string; amount: number }[];
 };
 export type FinancialInsightsResponse = {
     insight: string;

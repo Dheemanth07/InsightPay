@@ -80,8 +80,11 @@ export function Dashboard() {
                 getDashboardAnalytics(),
             ]);
 
+            const allCards = cardsResponse.data.cards ?? [];
+            const activePrimary = allCards.find((c) => c.isPrimary) || allCards[0] || null;
+
             setTransactions(historyResponse.data.result?.transactions ?? []);
-            setPrimaryCard(cardsResponse.data.cards?.[0] ?? null);
+            setPrimaryCard(activePrimary);
             setCashFlowData(analyticsResponse.data.cashFlow ?? []);
             setCategoryData(analyticsResponse.data.categories ?? []);
         } catch (err) {
@@ -184,7 +187,7 @@ export function Dashboard() {
                         </Link>
                     </div>
 
-                    <div className="flex min-h-[210px] items-center justify-center">
+                    <div className="flex min-h-52.5 items-center justify-center">
                         {loadingCard ? (
                             <div className="credit-card-scale-wrapper">
                                 <div>

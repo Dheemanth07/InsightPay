@@ -2,6 +2,10 @@ import {
     getUpcomingLiabilitiesForUser,
     generateFinancialInsights,
     addUserSubscription,
+    suggestTransactionCategory,
+    generateCategoryTrends,
+    generateSpendVelocity,
+    generateCashflowNarrative,
 } from "./analytics.service.js";
 import prisma from "../../prisma.js";
 import logger from "../../utils/logger.js";
@@ -164,3 +168,55 @@ export const getDashboardAnalytics = async (req, res) => {
             .json({ message: err.message || "Internal server error" });
     }
 };
+
+// ─── New AI Insight Handlers ──────────────────────────────────────────────────
+
+export const suggestCategory = async (req, res) => {
+    try {
+        const { description, categories } = req.body;
+        if (!description || !Array.isArray(categories)) {
+            return res.status(400).json({ message: "description and categories[] are required." });
+        }
+        const suggestion = await suggestTransactionCategory(description, categories);
+        return res.status(200).json({ suggestion });
+    } catch (err) {
+        logger.error({ err }, "Error suggesting category");
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const getCategoryTrends = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const trends = await generateCategoryTrends(userId);
+        return res.status(200).json({ trends });
+    } catch (err) {
+        logger.error({ err }, "Error generating category trends");
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const getSpendVelocity = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const velocity = await generateSpendVelocity(userId);
+        return res.status(200).json({ velocity });
+    } catch (err) {
+        logger.error({ err }, "Error generating spend velocity");
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const getCashflowNarrative = async (req, res) => {
+    try {
+        const { cashFlow } = req.body;
+        if (!Array.isArray(cashFlow)) {
+            return res.status(400).json({ message: "cashFlow array is required." });
+        }
+        const narrative = await generateCashflowNarrative(cashFlow);
+        return res.status(200).json({ narrative });
+    } catch (err) {
+        logger.error({ err }, "Error generating cashflow narrative");
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};

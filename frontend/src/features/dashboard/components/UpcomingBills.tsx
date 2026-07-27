@@ -5,6 +5,7 @@ import type { Subscription } from "../dashboard.types";
 import type { Card } from "../../cards/cards.types";
 import { getApiErrorMessage } from "../../../shared/api/errors";
 import { Skeleton } from "../../../shared/components/Skeleton";
+import toast from "react-hot-toast";
 // ─────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────
@@ -83,6 +84,9 @@ function AddBillModal({ cards, onClose, onSaved }: AddBillModalProps) {
                 dueDate: new Date(dueDate).toISOString(),
                 cardId,
             });
+            toast.success(
+                `Bill added! On the due date, ${formatInr(parsedAmount)} will be automatically debited from your wallet balance.`
+            );
             onSaved();
         } catch (err) {
             setError(getApiErrorMessage(err, "Failed to save subscription."));
@@ -202,6 +206,7 @@ export function UpcomingBills() {
     const [error, setError] = useState<string>("");
     const [showModal, setShowModal] = useState(false);
     const [cards, setCards] = useState<Card[]>([]);
+    const [insufficientWarning, setInsufficientWarning] = useState<boolean>(false);
     const fetchUpcomingBills = useCallback(async () => {
         try {
             setLoading(true);
@@ -213,6 +218,15 @@ export function UpcomingBills() {
             setUpcoming(billsRes.data.upcomingLiabilities || []);
             setTotal(billsRes.data.totalAmount || 0);
             setCards(cardsRes.data.cards || []);
+            setInsufficientWarning(!!billsRes.data.insufficientBalanceWarning);
+
+            if (billsRes.data.autoDeductedEvents && billsRes.data.autoDeductedEvents.length > 0) {
+                for (const ev of billsRes.data.autoDeductedEvents) {
+                    toast.success(
+                        `Auto-Debit Executed: ${formatInr(ev.amount)} for ${ev.merchantName} was automatically debited on its due date.`
+                    );
+                }
+            }
         } catch (err) {
             console.error("Error loading upcoming bills:", err);
             setError(getApiErrorMessage(err, "Could not load upcoming bills."));
@@ -232,7 +246,7 @@ export function UpcomingBills() {
                 <h2 className="text-lg font-extrabold tracking-tight text-[#0f1419]">Upcoming bills</h2>
                 <p className="mt-0.5 text-sm text-[#6b7280]">Due in the next 7 days</p>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
                 {upcoming.length > 0 && !loading && (
                     <span className="inline-flex items-center rounded-full bg-[#fffbeb] px-2.5 py-0.5 text-xs font-bold text-[#854d0e] border border-[#fef08a]">
                         {formatInr(total)}
@@ -327,8 +341,20 @@ export function UpcomingBills() {
                         </div>
                     ) : (
                         <div className="flex flex-col flex-1 min-h-0">
+                            {insufficientWarning && upcoming.length > 0 && (
+                                <div className="mb-3 p-3 rounded-2xl bg-[#fffbeb] border border-[#fde68a] text-xs font-medium text-[#b45309] leading-relaxed">
+                                    <strong className="font-bold mr-1">Balance Warning:</strong>
+                                    Your wallet balance is lower than your upcoming bills ({formatInr(total)}). Maintain sufficient balance for auto-debit on the due date.
+                                </div>
+                            )}
+                            {!insufficientWarning && upcoming.length > 0 && (
+                                <div className="mb-3 p-3 rounded-2xl bg-[#f0fdf4] border border-[#bbf7d0] text-xs font-medium text-[#166534] leading-relaxed">
+                                    <strong className="font-bold mr-1">Auto-Debit Active:</strong>
+                                    Due bills are automatically debited from your wallet balance on their due date.
+                                </div>
+                            )}
                             {/* Bills list */}
-                            <div className="flex-1 overflow-y-auto max-h-[220px] pr-0.5 space-y-2">
+                            <div className="flex-1 overflow-y-auto max-h-55 pr-0.5 space-y-2">
                                 {upcoming.map((sub) => (
                                     <div
                                         key={sub.id}

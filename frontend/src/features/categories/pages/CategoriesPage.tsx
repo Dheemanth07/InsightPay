@@ -8,6 +8,10 @@ import {
 import type { Category } from "../categories.types";
 import { ConfirmationModal } from "../../../shared/components/ConfirmationModal";
 import { Skeleton } from "../../../shared/components/Skeleton";
+import { getCategoryTrends } from "../../dashboard/dashboard.api";
+
+type Trend = { category: string; direction: string; percent: number | null; label: string };
+
 
 export function CategoriesPage() {
     const [categories, setCategories] = useState<Category[]>([]);
@@ -18,6 +22,8 @@ export function CategoriesPage() {
     const [processing, setProcessing] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+    const [trends, setTrends] = useState<Trend[]>([]);
+
 
     const fetchCategories = useCallback(async () => {
         try {
@@ -38,7 +44,12 @@ export function CategoriesPage() {
 
     useEffect(() => {
         fetchCategories();
+        // Fetch trends independently — silent on error
+        getCategoryTrends()
+            .then(res => setTrends(res.data.trends || []))
+            .catch(() => {});
     }, [fetchCategories]);
+
 
     const handleCreateCategory = async () => {
         if (!categoryName.trim()) {
@@ -124,7 +135,7 @@ export function CategoriesPage() {
                     <Skeleton width="w-32" height="h-6" rounded="rounded-md" />
                     <div className="category-grid">
                         {Array.from({ length: 6 }).map((_, i) => (
-                            <div key={i} className="category-card flex items-center justify-between p-4 border border-[#e8ecf0] rounded-[16px]">
+                            <div key={i} className="category-card flex items-center justify-between p-4 border border-[#e8ecf0] rounded-2xl">
                                 <Skeleton width="w-24" height="h-4" rounded="rounded-md" />
                                 {i % 2 === 0 && <Skeleton width="w-14" height="h-8" rounded="rounded-lg" />}
                             </div>
@@ -183,7 +194,9 @@ export function CategoriesPage() {
                     <p className="empty-state">No categories yet.</p>
                 ) : (
                     <div className="category-grid">
-                        {categories.map((category) => (
+                        {categories.map((category) => {
+                            const trend = trends.find(t => t.category === category.name);
+                            return (
                             <div
                                 key={category.id}
                                 className="category-card"
@@ -192,6 +205,20 @@ export function CategoriesPage() {
                                     <p className="category-card-title">
                                         {category.name}
                                     </p>
+                                    {trend && (
+                                        <span style={{
+                                            display: "inline-block",
+                                            marginTop: "4px",
+                                            fontSize: "0.7rem",
+                                            fontWeight: 700,
+                                            padding: "2px 8px",
+                                            borderRadius: "999px",
+                                            color: trend.direction === "up" ? "#b45309" : trend.direction === "down" ? "#0d6b5f" : "#6b7280",
+                                            background: trend.direction === "up" ? "#fef3c7" : trend.direction === "down" ? "#e8f5f3" : "#f3f4f6",
+                                        }}>
+                                            {trend.label}
+                                        </span>
+                                    )}
                                 </div>
                                 {!category.isSystem && (
                                     <button
@@ -207,7 +234,8 @@ export function CategoriesPage() {
                                     </button>
                                 )}
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </section>

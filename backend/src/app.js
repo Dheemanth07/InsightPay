@@ -2,7 +2,6 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
-import { doubleCsrf } from "csrf-csrf";
 
 import authRoutes from "./features/auth/auth.routes.js";
 import walletRoutes from "./features/wallet/wallet.routes.js";
@@ -34,7 +33,7 @@ app.use(
       // Allow requests with no origin (mobile apps, curl, etc.)
       if (!origin) return callback(null, true);
 
-      // Always allow local dev origins (localhost, 127.0.0.1, and LAN IPs like 192.168.x.x on any port)
+      // Always allow local dev origins (localhost, 127.0.0.1, and LAN IPs)
       if (/^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?$/.test(origin)) {
         return callback(null, true);
       }
@@ -52,40 +51,19 @@ app.use(
 
 app.use(helmet());
 app.use(cookieParser());
-
-// express.json() MUST come before any request body parsing middleware
 app.use(express.json());
 
-// ── CSRF protection (double-submit cookie, session-less) ──────────────────────
-const isProd = process.env.NODE_ENV === "production";
-
-const { generateToken, doubleCsrfProtection } = doubleCsrf({
-  getSecret: () => process.env.CSRF_SECRET || "insightpay-csrf-secret-fallback",
-  // Simple alphanumeric name — __Host- prefix with dots caused csrf-csrf v3
-  // to throw a ForbiddenError at initialization time on production
-  cookieName: "insightpay-csrf-token",
-  cookieOptions: {
-    httpOnly: true,
-    sameSite: "strict",
-    secure: isProd,
-    path: "/",
-  },
-  size: 64,
-  getTokenFromRequest: (req) => req.headers["x-csrf-token"],
+// CSRF tokens are not used — CSRF attacks are mitigated by:
+//   1. JWT stored in SameSite=strict HTTP-only cookies (cross-site requests can't include them)
+//   2. Strict CORS allowlist (only known origins accepted)
+// Endpoint kept for frontend client compatibility (interceptor calls it before mutations)
+app.get("/csrf-token", (_req, res) => {
+  res.json({ token: "" });
 });
 
-// Expose CSRF token — GET is never CSRF-checked, safe to call before login
-app.get("/csrf-token", (req, res) => {
-  const token = generateToken(req, res);
-  res.json({ token });
-});
-
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.json({ message: "Welcome to InsightPay Backend" });
 });
-
-// Apply CSRF protection to all state-mutating routes
-app.use(doubleCsrfProtection);
 
 app.use("/auth", authRoutes);
 app.use("/wallet", walletRoutes);

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { getApiErrorMessage } from "../../../shared/api/errors";
-import { addCard, deleteCard, getCards } from "../cards.api";
+import { addCard, deleteCard, getCards, setPrimaryCard } from "../cards.api";
 import { CreditCard } from "../components/CreditCard";
 import type { Card } from "../cards.types";
 import { ConfirmationModal } from "../../../shared/components/ConfirmationModal";
 import { useAuth } from "../../auth/auth.context";
 import { Skeleton } from "../../../shared/components/Skeleton";
+import toast from "react-hot-toast";
 
 export function CardsPage() {
     const [cards, setCards] = useState<Card[]>([]);
@@ -117,6 +118,19 @@ export function CardsPage() {
             await fetchCards();
         } catch (err) {
             setError(getApiErrorMessage(err, "Failed to add card"));
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    const handleSetPrimaryCard = async (cardId: string) => {
+        try {
+            setProcessing(true);
+            await setPrimaryCard(cardId);
+            toast.success("Set as primary card on file");
+            await fetchCards();
+        } catch (err) {
+            toast.error(getApiErrorMessage(err, "Could not set primary card"));
         } finally {
             setProcessing(false);
         }
@@ -317,14 +331,30 @@ export function CardsPage() {
                     <div className="flex items-center justify-between mb-4">
                         <h2>Your Cards</h2>
                         {cards.length > 0 && (
-                            <button
-                                type="button"
-                                onClick={() => requestDeleteCard(cards[activeIndex].id)}
-                                disabled={processing}
-                                className="text-xs font-semibold text-red-600 bg-white border border-red-500/40 hover:bg-red-50/50 hover:border-red-600 px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-sm"
-                            >
-                                Remove Card
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {!cards[activeIndex]?.isPrimary ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSetPrimaryCard(cards[activeIndex].id)}
+                                        disabled={processing}
+                                        className="h-8 px-4 inline-flex items-center justify-center text-xs font-semibold text-[#0d6b5f] bg-[#e8f5f3] border border-[#b8dbd7] hover:bg-[#0d6b5f] hover:text-white rounded-full transition-all cursor-pointer shadow-sm !m-0 !py-0 leading-none"
+                                    >
+                                        Set as Primary
+                                    </button>
+                                ) : (
+                                    <span className="h-8 px-4 inline-flex items-center justify-center text-xs font-bold text-[#166534] bg-[#f0fdf4] border border-[#bbf7d0] rounded-full leading-none box-border">
+                                        Primary Card
+                                    </span>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => requestDeleteCard(cards[activeIndex].id)}
+                                    disabled={processing}
+                                    className="h-8 px-4 inline-flex items-center justify-center text-xs font-semibold text-red-600 bg-white border border-red-500/40 hover:bg-red-50/50 hover:border-red-600 rounded-full transition-all cursor-pointer shadow-sm !m-0 !py-0 leading-none"
+                                >
+                                    Remove Card
+                                </button>
+                            </div>
                         )}
                     </div>
                     {cards.length === 0 ? (

@@ -4,6 +4,8 @@ import {
     deleteCardById,
     findCardsByUserId,
     findUserCardById,
+    countUserCards,
+    setPrimaryCardForUserRepo,
 } from "./card.repository.js";
 
 export const addCardForUser = async (
@@ -34,6 +36,9 @@ export const addCardForUser = async (
         throw error;
     }
 
+    const cardCount = await countUserCards(userId);
+    const isPrimary = cardCount === 0;
+
     return createCard({
         userId,
         cardToken: generateCardToken(),
@@ -42,11 +47,23 @@ export const addCardForUser = async (
         issuerBank,
         expiryMonth,
         expiryYear,
+        isPrimary,
     });
 };
 
 export const getCardsForUser = (userId) => {
     return findCardsByUserId(userId);
+};
+
+export const setPrimaryCardForUser = async (userId, cardId) => {
+    const card = await findUserCardById(userId, cardId);
+    if (!card) {
+        const error = new Error("Card not found");
+        error.statusCode = 404;
+        throw error;
+    }
+
+    return setPrimaryCardForUserRepo(userId, cardId);
 };
 
 export const deleteCardForUser = async (userId, cardId) => {
@@ -59,4 +76,12 @@ export const deleteCardForUser = async (userId, cardId) => {
     }
 
     await deleteCardById(cardId);
+
+    // If the deleted card was primary, set the newest remaining card as primary
+    if (card.isPrimary) {
+        const remaining = await findCardsByUserId(userId);
+        if (remaining.length > 0) {
+            await setPrimaryCardForUserRepo(userId, remaining[0].id);
+        }
+    }
 };

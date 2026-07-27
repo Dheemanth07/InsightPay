@@ -18,3 +18,7 @@ export const addCard = (data: {
 export const deleteCard = (cardId: string) => {
     return apiClient.delete(`/cards/${cardId}`);
 };
+
+export const setPrimaryCard = (cardId: string) => {
+    return apiClient.patch<{ message: string; card: Card }>(`/cards/${cardId}/primary`);
+};

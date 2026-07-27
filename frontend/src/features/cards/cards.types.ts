@@ -5,5 +5,6 @@ export type Card = {
     issuerBank: string;
     expiryMonth: number;
     expiryYear: number;
+    isPrimary?: boolean;
     createdAt: string;
 };

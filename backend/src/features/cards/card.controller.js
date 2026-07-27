@@ -2,6 +2,7 @@ import {
     addCardForUser,
     deleteCardForUser,
     getCardsForUser,
+    setPrimaryCardForUser,
 } from "./card.service.js";
 
 export const addCard = async (req, res) => {
@@ -27,6 +28,19 @@ export const getCards = async (req, res) => {
     } catch (err) {
         console.error("Error retrieving cards:", err);
         return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const setPrimaryCardController = async (req, res) => {
+    try {
+        const card = await setPrimaryCardForUser(req.user.id, req.params.cardId);
+
+        return res.status(200).json({ message: "Primary card updated successfully", card });
+    } catch (err) {
+        console.error("Error setting primary card:", err);
+        return res
+            .status(err.statusCode || 500)
+            .json({ message: err.message || "Internal server error" });
     }
 };
 

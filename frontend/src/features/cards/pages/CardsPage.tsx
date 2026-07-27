@@ -210,7 +210,7 @@ export function CardsPage() {
                         <Skeleton width="w-28" height="h-6" rounded="rounded-md" />
                         <Skeleton width="w-20" height="h-4" rounded="rounded-md" />
                     </div>
-                    <div className="relative h-[180px] sm:h-[240px] lg:h-[280px] w-full flex items-center justify-center overflow-hidden">
+                    <div className="relative h-45 sm:h-60 lg:h-70 w-full flex items-center justify-center overflow-hidden">
                         {/* Center Card */}
                         <div className="absolute translate-x-0 scale-100 opacity-100 z-20 flex flex-col items-center bg-transparent border-none shadow-none">
                             <div className="credit-card-scale-wrapper">
@@ -218,7 +218,7 @@ export function CardsPage() {
                             </div>
                         </div>
                         {/* Left Card */}
-                        <div className="absolute -translate-x-[65%] sm:-translate-x-[50%] scale-85 opacity-50 z-10 hidden sm:flex flex-col items-center bg-transparent border-none shadow-none">
+                        <div className="absolute translate-x-[-65%] sm:translate-x-[-50%] scale-85 opacity-50 z-10 hidden sm:flex flex-col items-center bg-transparent border-none shadow-none">
                             <div className="credit-card-scale-wrapper">
                                 <div><Skeleton width="w-[400px]" height="h-[210px]" rounded="rounded-2xl" /></div>
                             </div>
@@ -363,7 +363,7 @@ export function CardsPage() {
                         <div className="flex flex-col">
                             {/* cover flow 3D carousel container */}
                             <div 
-                                className="relative h-[180px] sm:h-[240px] lg:h-[290px] w-full flex items-center justify-center touch-pan-y overflow-hidden select-none"
+                                className="relative h-45 sm:h-60 lg:h-72.5 w-full flex items-center justify-center touch-pan-y overflow-hidden select-none"
                                 onTouchStart={handleTouchStart}
                                 onTouchEnd={handleTouchEnd}
                             >

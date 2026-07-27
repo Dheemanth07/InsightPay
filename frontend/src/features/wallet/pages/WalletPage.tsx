@@ -21,6 +21,7 @@ import { Spinner } from "../../../shared/components/Spinner";
 import { Skeleton } from "../../../shared/components/Skeleton";
 import { getSpendVelocity } from "../../dashboard/dashboard.api";
 import { TransactionPinModal } from "../../../shared/components/TransactionPinModal";
+import { CurrencyConverterCard } from "../components/CurrencyConverterCard";
 
 export function WalletPage() {
     const [balance, setBalance] = useState<number>(0);
@@ -823,6 +824,9 @@ export function WalletPage() {
                     </button>
                 </div>
             </section>
+
+            {/* Live Universal Currency Converter Card */}
+            <CurrencyConverterCard walletBalance={balance} />
 
             <TransactionPinModal
                 isOpen={pinModalOpen}

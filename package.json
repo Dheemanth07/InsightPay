@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@vercel/speed-insights": "^2.0.0",
+    "latest": "^0.2.0"
+  }
+}

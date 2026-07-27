@@ -10,6 +10,8 @@ import { getWalletTransactions } from "../../wallet/wallet.api";
 import type { Transaction } from "../transactions.types";
 import { SplitBillModal } from "../components/SplitBillModal";
 import { suggestCategory } from "../../dashboard/dashboard.api";
+import { useAuth } from "../../auth/auth.context";
+import { exportToCSV, exportToPDF } from "../utils/statementExport";
 
 
 const MONTH_LABEL_OPTIONS: Intl.DateTimeFormatOptions = {
@@ -35,17 +37,27 @@ const groupTransactionsByMonth = (transactions: Transaction[]) => {
                 MONTH_LABEL_OPTIONS,
             );
 
-            if (!groups[monthKey]) {
-                groups[monthKey] = {
-                    label: monthLabel,
-                    transactions: [],
-                };
+            const existingGroup = groups.find(
+                (group) => group.monthKey === monthKey,
+            );
+
+            if (existingGroup) {
+                existingGroup.transactions.push(transaction);
+            } else {
+                groups.push({
+                    monthKey,
+                    monthLabel,
+                    transactions: [transaction],
+                });
             }
 
-            groups[monthKey].transactions.push(transaction);
             return groups;
         },
-        {} as Record<string, { label: string; transactions: Transaction[] }>,
+        [] as {
+            monthKey: string;
+            monthLabel: string;
+            transactions: Transaction[];
+        }[],
     );
 };
 
@@ -81,7 +93,7 @@ const formatTransactionDate = (transaction: Transaction) => {
     return `${day}, ${time}`;
 };
 
-const filterOptionsFromTransactions = (transactions: Transaction[]) => {
+const extractFilterOptions = (transactions: Transaction[]) => {
     const months = new Set<string>();
     const categories = new Set<string>();
     const statuses = new Set<string>();
@@ -106,6 +118,7 @@ const filterOptionsFromTransactions = (transactions: Transaction[]) => {
 };
 
 export function TransactionsPage() {
+    const { user } = useAuth();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
@@ -117,6 +130,7 @@ export function TransactionsPage() {
     const [splitTransaction, setSplitTransaction] = useState<Transaction | null>(null);
     const [search, setSearch] = useState("");
     const [filterOpen, setFilterOpen] = useState(false);
+    const [exportMenuOpen, setExportMenuOpen] = useState(false);
     const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
@@ -178,7 +192,7 @@ export function TransactionsPage() {
     };
 
     const filters = useMemo(
-        () => filterOptionsFromTransactions(transactions),
+        () => extractFilterOptions(transactions),
         [transactions],
     );
 
@@ -223,14 +237,9 @@ export function TransactionsPage() {
         selectedTypes,
     ]);
 
-    const grouped = useMemo(
+    const monthGroups = useMemo(
         () => groupTransactionsByMonth(filteredTransactions),
         [filteredTransactions],
-    );
-
-    const monthLabels = useMemo(
-        () => Object.keys(grouped).sort((a, b) => (a > b ? -1 : 1)),
-        [grouped],
     );
 
     const clearFilters = () => {
@@ -401,18 +410,59 @@ function CategorySuggestionChip({
                         onChange={(event) => setSearch(event.target.value)}
                     />
                 </div>
-                <button
-                    type="button"
-                    className="secondary-button filter-button flex items-center justify-center gap-2"
-                    onClick={() => setFilterOpen(true)}
-                >
-                    <span>Filter</span>
-                    {(selectedMonths.length + selectedCategories.length + selectedStatuses.length + selectedTypes.length) > 0 && (
-                        <span className="filter-count-badge">
-                            {selectedMonths.length + selectedCategories.length + selectedStatuses.length + selectedTypes.length}
-                        </span>
-                    )}
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        className="secondary-button filter-button h-9 px-4 inline-flex items-center justify-center gap-2 rounded-full text-xs font-bold cursor-pointer m-0! py-0! leading-none"
+                        onClick={() => setFilterOpen(true)}
+                    >
+                        <span>Filter</span>
+                        {(selectedMonths.length + selectedCategories.length + selectedStatuses.length + selectedTypes.length) > 0 && (
+                            <span className="filter-count-badge">
+                                {selectedMonths.length + selectedCategories.length + selectedStatuses.length + selectedTypes.length}
+                            </span>
+                        )}
+                    </button>
+
+                    {/* Export Statement Dropdown */}
+                    <div className="relative">
+                        <button
+                            type="button"
+                            className="secondary-button h-9 px-4 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-[#0d6b5f] bg-[#e8f5f3] border border-[#b8dbd7] hover:bg-[#0d6b5f] hover:text-white rounded-full transition-all cursor-pointer shadow-xs m-0! py-0! leading-none"
+                            onClick={() => setExportMenuOpen((prev) => !prev)}
+                        >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            <span>Export</span>
+                            <span className="text-[10px]">▼</span>
+                        </button>
+
+                        {exportMenuOpen && (
+                            <div 
+                                className="absolute right-0 mt-2 w-48 bg-white border border-[#e6eaee] rounded-2xl shadow-xl z-30 overflow-hidden p-1.5 space-y-1"
+                                onClick={() => setExportMenuOpen(false)}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={() => exportToPDF(filteredTransactions, user || undefined)}
+                                    className="w-full text-left px-3 py-2 text-xs font-bold text-[#0f1419] hover:bg-[#f4f7f8] rounded-xl flex items-center gap-2 transition"
+                                >
+                                    <span className="text-red-500 font-black text-xs">PDF</span>
+                                    <span>Bank Statement</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => exportToCSV(filteredTransactions)}
+                                    className="w-full text-left px-3 py-2 text-xs font-bold text-[#0f1419] hover:bg-[#f4f7f8] rounded-xl flex items-center gap-2 transition"
+                                >
+                                    <span className="text-emerald-600 font-black text-xs">CSV</span>
+                                    <span>Spreadsheet</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </section>
 
             {categoryError && <p className="error-text">{categoryError}</p>}
@@ -450,7 +500,7 @@ function CategorySuggestionChip({
                                 <div>
                                     <p className="text-[11px] font-extrabold text-[#64748b] uppercase tracking-wider mb-2">Month</p>
                                     <div className="flex flex-wrap gap-2">
-                                        {filters.months.map((monthKey) => {
+                                        {filters.months.map((monthKey: string) => {
                                             const [month, year] = monthKey.split("/");
                                             const label = new Date(`${year}-${month}-01`).toLocaleDateString("en-US", MONTH_LABEL_OPTIONS);
                                             const isSelected = selectedMonths.includes(monthKey);
@@ -483,7 +533,7 @@ function CategorySuggestionChip({
                                 <div>
                                     <p className="text-[11px] font-extrabold text-[#64748b] uppercase tracking-wider mb-2">Status</p>
                                     <div className="flex flex-wrap gap-2">
-                                        {filters.statuses.map((status) => {
+                                        {filters.statuses.map((status: string) => {
                                             const isSelected = selectedStatuses.includes(status);
 
                                             return (
@@ -515,7 +565,7 @@ function CategorySuggestionChip({
                             <div>
                                 <p className="text-[11px] font-extrabold text-[#64748b] uppercase tracking-wider mb-2">Transaction Type</p>
                                 <div className="flex flex-wrap gap-2">
-                                    {filters.types.map((type) => {
+                                    {filters.types.map((type: string) => {
                                         const isSelected = selectedTypes.includes(type);
 
                                         return (
@@ -546,7 +596,7 @@ function CategorySuggestionChip({
                             <div>
                                 <p className="text-[11px] font-extrabold text-[#64748b] uppercase tracking-wider mb-2">Category</p>
                                 <div className="flex flex-wrap gap-2">
-                                    {filters.categories.map((category) => {
+                                    {filters.categories.map((category: string) => {
                                         const isSelected = selectedCategories.includes(category);
 
                                         return (
@@ -595,24 +645,23 @@ function CategorySuggestionChip({
                 </div>
             )}
 
-            {monthLabels.length === 0 ? (
+            {monthGroups.length === 0 ? (
                 <section className="panel">
                     <p className="empty-state">
                         No transactions match your search or filters.
                     </p>
                 </section>
             ) : (
-                monthLabels.map((monthKey) => {
-                    const group = grouped[monthKey];
+                monthGroups.map((group) => {
                     const monthTotal = group.transactions.reduce(
-                        (sum, transaction) => sum + transaction.amount,
+                        (sum: number, transaction: Transaction) => sum + Number(transaction.amount),
                         0,
                     );
                     return (
-                        <section className="panel month-group" key={monthKey}>
+                        <section className="panel month-group" key={group.monthKey}>
                             <div className="month-group-header">
                                 <div className="group-header">
-                                    <p className="group-label">{group.label}</p>
+                                    <p className="group-label">{group.monthLabel}</p>
                                     <p className="group-subtitle">
                                         Total expenditure: ₹{monthTotal.toFixed(2)}
                                     </p>
@@ -620,7 +669,7 @@ function CategorySuggestionChip({
                             </div>
 
                             <div className="transaction-list">
-                                {group.transactions.map((transaction) => (
+                                {group.transactions.map((transaction: Transaction) => (
                                     <div
                                         key={transaction.id}
                                         className="transaction-row"

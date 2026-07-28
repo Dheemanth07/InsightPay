@@ -18,7 +18,13 @@ const parseUniversalUpiQr = (qrData) => {
             const pa = url.searchParams.get("pa") || "";
             const pn = url.searchParams.get("pn") || "Merchant";
             const am = parseFloat(url.searchParams.get("am") || "0");
-            return { isUniversalUpi: true, upiId: pa, payeeName: pn, amount: am };
+            const tn = url.searchParams.get("tn") || "";
+
+            // Extract embedded reference from tn parameter if present (e.g. "InsightPay Payment (qr_12345)")
+            const refMatch = tn.match(/qr_[a-f0-9-]+/i);
+            const reference = refMatch ? refMatch[0] : null;
+
+            return { isUniversalUpi: true, upiId: pa, payeeName: pn, amount: am, reference };
         } catch {
             return null;
         }
@@ -73,17 +79,9 @@ export const generateQrForPayment = async (receiverId, amount) => {
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
 
     const user = await prisma.user.findUnique({ where: { id: receiverId }, select: { name: true, upiId: true, email: true } });
-    const cleanName = user?.name ? user.name.replace(/[^a-zA-Z0-9]/g, "") : "User";
     const upiId = user?.upiId || `${user?.email ? user.email.split("@")[0] : "user"}@insightpay`;
 
-    await createPendingQrTransaction({
-        reference,
-        amount,
-        receiverId,
-        expiresAt,
-    });
-
-    // Generate Universal UPI URI (Standard for GPay / PhonePe / Paytm)
+    // Generate Universal NPCI compliant UPI URI (Standard for GPay / PhonePe / Paytm / Navi)
     const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(user?.name || "InsightPay User")}&am=${amount}&cu=INR&tn=${encodeURIComponent(`InsightPay Payment (${reference})`)}`;
 
     const payload = JSON.stringify({
@@ -93,15 +91,41 @@ export const generateQrForPayment = async (receiverId, amount) => {
     });
     const qrData = JSON.stringify({ payload, signature: signQR(payload) });
 
-    // Generate QR Image using signed qrData so internal scanner decodes exact reference & receiverId
-    const qrImage = await QRCode.toDataURL(qrData);
+    // Generate QR Image encoding standard upiUri so GPay, Navi, PhonePe, Paytm & internal scanner all scan it natively
+    const qrImage = await QRCode.toDataURL(upiUri);
+
+    await createPendingQrTransaction({
+        reference,
+        amount,
+        receiverId,
+        expiresAt,
+    });
 
     return { qrData, qrImage, upiUri, reference, expiresAt, amount, payeeName: user?.name, upiId };
 };
 
 export const validateQrPayment = async (qrData) => {
     const parsed = parseSignedQrData(qrData);
+
     if (parsed.isUniversalUpi) {
+        if (parsed.reference) {
+            const transaction = await findQrTransactionByReference(parsed.reference);
+            if (transaction) {
+                if (transaction.status !== "PENDING") {
+                    const error = new Error("QR already used or Transaction already processed");
+                    error.statusCode = 400;
+                    throw error;
+                }
+                return {
+                    reference: transaction.reference,
+                    amount: transaction.amount,
+                    receiverId: transaction.toUserId,
+                    expiresAt: transaction.qrExpiresAt,
+                    payeeName: transaction.toUser?.name,
+                };
+            }
+        }
+
         let user = null;
         if (parsed.upiId) {
             user = await prisma.user.findFirst({
@@ -149,7 +173,37 @@ export const confirmQrPayment = async (payerId, qrData, pin) => {
     if (pin) {
         await verifyTxPin(payerId, pin);
     }
-    const { reference } = parseSignedQrData(qrData);
+    const parsed = parseSignedQrData(qrData);
+
+    let reference = parsed.reference;
+
+    if (parsed.isUniversalUpi && !reference) {
+        let receiverId = parsed.receiverId;
+        if (!receiverId && parsed.upiId) {
+            const user = await prisma.user.findFirst({
+                where: {
+                    OR: [
+                        { upiId: parsed.upiId },
+                        { email: parsed.upiId.split("@")[0] + "@gmail.com" },
+                    ],
+                },
+            });
+            if (!user) throw new Error("Payee user not found for UPI ID");
+            receiverId = user.id;
+        }
+
+        if (receiverId) {
+            const transaction = await confirmQrPaymentTransaction(payerId, reference);
+            return { reference: transaction.reference, amount: transaction.amount };
+        }
+    }
+
+    if (!reference) {
+        const error = new Error("Invalid transaction reference");
+        error.statusCode = 400;
+        throw error;
+    }
+
     const transaction = await confirmQrPaymentTransaction(payerId, reference);
 
     return {

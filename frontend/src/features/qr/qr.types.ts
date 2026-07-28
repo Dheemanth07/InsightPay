@@ -11,6 +11,9 @@ export type QRValidated = {
     reference: string;
     amount: number;
     receiverId: number;
+    isUniversalUpi?: boolean;
+    upiId?: string;
+    payeeName?: string;
 };
 
 export type QRPaymentResult = {

@@ -9,6 +9,7 @@ import {
 } from "../qr.api";
 import type { QRGenerated, QRValidated } from "../qr.types";
 import QRScanner from "../../../shared/components/QRScanner";
+import { TransactionPinModal } from "../../../shared/components/TransactionPinModal";
 
 export function QRPage() {
     const [amount, setAmount] = useState("");
@@ -18,13 +19,15 @@ export function QRPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [step, setStep] = useState<
-        "generate" | "validate" | "confirm" | "scan" | "send"
+        "generate" | "validate" | "confirm" | "scan" | "send" | "sent_success"
     >("generate");
     const [showScanner, setShowScanner] = useState(false);
     const [sendAmount, setSendAmount] = useState("");
-    const [sendReceiverId, setSendReceiverId] = useState<number | null>(null);
     const [receivedAmount, setReceivedAmount] = useState<number | null>(null);
     const [paymentSuccess, setPaymentSuccess] = useState(false);
+    const [showPinModal, setShowPinModal] = useState(false);
+    const [payeeInfo, setPayeeInfo] = useState<{ name: string; upiId?: string } | null>(null);
+    const [sentPaymentDetails, setSentPaymentDetails] = useState<{ amount: number; payeeName: string; reference: string } | null>(null);
 
     // Auto-polling for QR status
     useEffect(() => {
@@ -115,31 +118,41 @@ export function QRPage() {
 
 
 
-    const handleConfirmPayment = async () => {
+    const handleExecutePaymentWithPin = async (pin: string) => {
         if (!qrData.trim()) {
-            setError("QR data is required");
-            return;
+            throw new Error("QR data is required");
+        }
+
+        const finalAmount = Number(sendAmount);
+        if (!finalAmount || finalAmount <= 0) {
+            throw new Error("Please enter a valid amount greater than ₹0.");
         }
 
         setLoading(true);
         setError("");
 
         try {
-            if (!sendReceiverId) throw new Error("Missing receiver");
+            const res = await confirmQRPayment(qrData, pin, finalAmount);
 
-            await confirmQRPayment(qrData);
+            setSentPaymentDetails({
+                amount: finalAmount,
+                payeeName: payeeInfo?.name || "Payee",
+                reference: res.data.reference || `trans_${Date.now()}`,
+            });
 
             setAmount("");
             setQrData("");
             setGeneratedQR(null);
             setValidatedQR(null);
             setSendAmount("");
-            setSendReceiverId(null);
-            setStep("generate");
+            setStep("sent_success");
             setShowScanner(false);
-            toast.success("Payment sent! That was quick.");
+            setShowPinModal(false);
+            toast.success("Payment sent successfully!");
         } catch (err) {
-            setError(getApiErrorMessage(err, "Payment failed"));
+            const msg = getApiErrorMessage(err, "Payment failed");
+            setError(msg);
+            throw new Error(msg);
         } finally {
             setLoading(false);
         }
@@ -190,9 +203,14 @@ export function QRPage() {
         for (const candidate of candidates) {
             try {
                 const resp = await validateQR(candidate);
-                setValidatedQR({ ...resp.data, isValid: true });
-                setSendAmount(String(resp.data.amount));
-                setSendReceiverId(resp.data.receiverId);
+                const validated = resp.data as QRValidated;
+                setValidatedQR({ ...validated, isValid: true });
+                const initialAmt = Number(validated.amount) > 0 ? String(validated.amount) : "";
+                setSendAmount(initialAmt);
+                setPayeeInfo({
+                    name: validated.payeeName || validated.upiId || "InsightPay Payee",
+                    upiId: validated.upiId,
+                });
                 setQrData(candidate);
                 setStep("confirm");
                 setLoading(false);
@@ -416,54 +434,120 @@ export function QRPage() {
                     </section>
                 )}
 
-                {step === "send" && validatedQR && (
-                    <section className="panel">
-                        <h2>Send Payment</h2>
-                        <label>
-                            Receiver ID
-                            <input
-                                type="number"
-                                value={String(sendReceiverId || "")}
-                                readOnly
-                            />
-                        </label>
-                        <label>
-                            Amount (INR)
-                            <input
-                                type="number"
-                                min="1"
-                                value={sendAmount}
-                                onChange={(e) => setSendAmount(e.target.value)}
-                            />
-                        </label>
+                {step === "sent_success" && sentPaymentDetails && (
+                    <section className="panel flex flex-col items-center text-center bg-emerald-50 border border-emerald-200 p-8 rounded-2xl animate-fade-in">
+                        <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center text-white text-3xl mb-4 shadow-sm">
+                            ✓
+                        </div>
+                        <h2 className="text-2xl font-bold text-emerald-900 mb-1">Payment Successful!</h2>
+                        <p className="text-3xl font-extrabold text-[#0d6b5f] my-2">
+                            ₹{Number(sentPaymentDetails.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-emerald-700 text-xs mb-6">
+                            Paid to <strong>{sentPaymentDetails.payeeName}</strong>
+                        </p>
                         <button
                             type="button"
-                            onClick={handleConfirmPayment}
-                            disabled={loading}
+                            onClick={() => {
+                                setSentPaymentDetails(null);
+                                setStep("generate");
+                            }}
+                            className="px-6 py-2.5 bg-[#0d6b5f] hover:bg-[#094d45] text-white font-bold rounded-xl transition-colors duration-200 cursor-pointer"
                         >
-                            {loading ? "Processing..." : "Confirm Payment"}
+                            Done
                         </button>
                     </section>
                 )}
 
                 {step === "confirm" && validatedQR && (
-                    <section className="panel">
-                        <h2>Confirm Payment</h2>
-                        <p>Amount: INR {validatedQR.amount}</p>
-                        <p className="muted-panel">
-                            {validatedQR.isValid
-                                ? "QR is valid and ready to confirm"
-                                : "QR validation failed"}
-                        </p>
+                    <section className="panel flex flex-col gap-5 p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
+                        <header className="flex items-center justify-between border-b border-gray-100 pb-3">
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900 m-0">Confirm Payment</h2>
+                                <p className="text-xs text-gray-500 m-0 mt-0.5">Review payee & amount before proceeding</p>
+                            </div>
+                            <span className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                {validatedQR.isUniversalUpi ? "UPI QR" : "InsightPay QR"}
+                            </span>
+                        </header>
+
+                        {/* Payee Profile Card */}
+                        <div className="flex items-center gap-3.5 p-3.5 bg-gray-50 rounded-xl border border-gray-100">
+                            <div className="w-11 h-11 rounded-full bg-[#0d6b5f] text-white flex items-center justify-center text-base font-extrabold shadow-sm flex-shrink-0">
+                                {(payeeInfo?.name || "P").charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h3 className="text-sm font-bold text-gray-900 truncate m-0">
+                                    {payeeInfo?.name || "InsightPay Merchant"}
+                                </h3>
+                                {payeeInfo?.upiId && (
+                                    <p className="text-xs text-gray-500 font-mono truncate m-0 mt-0.5">
+                                        {payeeInfo.upiId}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Amount Input */}
+                        <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                                Payment Amount
+                            </label>
+                            <div style={{ position: "relative" }}>
+                                <span style={{
+                                    position: "absolute",
+                                    left: "0.85rem",
+                                    top: "50%",
+                                    transform: "translateY(-50%)",
+                                    color: "#374151",
+                                    fontWeight: 800,
+                                    fontSize: "1.1rem",
+                                    pointerEvents: "none",
+                                    zIndex: 1,
+                                }}>
+                                    ₹
+                                </span>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    step="any"
+                                    value={sendAmount}
+                                    onChange={(e) => setSendAmount(e.target.value)}
+                                    placeholder="0.00"
+                                    style={{
+                                        paddingLeft: "2.2rem",
+                                        marginBottom: 0,
+                                        fontWeight: 800,
+                                        fontSize: "1.2rem",
+                                    }}
+                                />
+                            </div>
+                            {(!sendAmount || Number(sendAmount) <= 0) && (
+                                <p className="text-xs text-amber-600 font-medium mt-1.5 m-0">
+                                    Please enter an amount to transfer.
+                                </p>
+                            )}
+                        </div>
+
                         <button
                             type="button"
-                            onClick={handleConfirmPayment}
-                            disabled={loading || !validatedQR.isValid}
+                            disabled={!sendAmount || Number(sendAmount) <= 0 || loading}
+                            onClick={() => setShowPinModal(true)}
+                            className="w-full py-3.5 bg-[#0d6b5f] hover:bg-[#094d45] disabled:opacity-50 text-white font-bold text-sm rounded-xl transition-all duration-200 shadow-sm cursor-pointer mt-2"
                         >
-                            {loading ? "Processing..." : "Confirm Payment"}
+                            Proceed to Pay ₹{Number(sendAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                         </button>
                     </section>
                 )}
+
+                <TransactionPinModal
+                    isOpen={showPinModal}
+                    onClose={() => setShowPinModal(false)}
+                    onSubmit={handleExecutePaymentWithPin}
+                    title="Enter 6-Digit PIN"
+                    description={`Authorize payment of ₹${Number(sendAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })} to ${payeeInfo?.name || "Payee"}`}
+                    actionLabel="Confirm & Pay"
+                />
             </div>
         </main>
     );

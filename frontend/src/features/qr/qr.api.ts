@@ -30,8 +30,8 @@ export const validateQR = (qrData: string) => {
     return apiClient.post<QRValidated>("/qr/validate", { qrData });
 };
 
-export const confirmQRPayment = (qrData: string) => {
-    return apiClient.post<QRPaymentResult>("/qr/confirm", { qrData });
+export const confirmQRPayment = (qrData: string, pin?: string, amount?: number) => {
+    return apiClient.post<QRPaymentResult>("/qr/confirm", { qrData, pin, amount });
 };
 
 export const markQrUsed = (reference: string) => {

@@ -8,6 +8,7 @@ import {
     findQrTransactionByReference,
 } from "./qr.repository.js";
 import { verifyTxPin } from "../auth/auth.service.js";
+import { sendMoneyService } from "../wallet/wallet.service.js";
 
 const parseUniversalUpiQr = (qrData) => {
     if (typeof qrData !== "string") return null;
@@ -169,15 +170,22 @@ export const validateQrPayment = async (qrData) => {
     };
 };
 
-export const confirmQrPayment = async (payerId, qrData, pin) => {
+export const confirmQrPayment = async (payerId, qrData, pin, customAmount) => {
     if (pin) {
         await verifyTxPin(payerId, pin);
     }
     const parsed = parseSignedQrData(qrData);
 
     let reference = parsed.reference;
+    let amount = Number(customAmount) || Number(parsed.amount) || 0;
 
-    if (parsed.isUniversalUpi && !reference) {
+    if (amount <= 0) {
+        const error = new Error("Invalid payment amount. Amount must be greater than ₹0.");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    if (parsed.isUniversalUpi) {
         let receiverId = parsed.receiverId;
         if (!receiverId && parsed.upiId) {
             const user = await prisma.user.findFirst({
@@ -188,13 +196,56 @@ export const confirmQrPayment = async (payerId, qrData, pin) => {
                     ],
                 },
             });
-            if (!user) throw new Error("Payee user not found for UPI ID");
-            receiverId = user.id;
+            if (user) {
+                receiverId = user.id;
+            }
         }
 
         if (receiverId) {
-            const transaction = await confirmQrPaymentTransaction(payerId, reference);
-            return { reference: transaction.reference, amount: transaction.amount };
+            if (receiverId === payerId) {
+                const error = new Error("Cannot pay to yourself");
+                error.statusCode = 400;
+                throw error;
+            }
+            await sendMoneyService(payerId, receiverId, amount);
+            return {
+                reference: `qr_trans_${Date.now()}`,
+                amount,
+                payeeName: parsed.payeeName || parsed.upiId,
+            };
+        } else {
+            // External UPI payee (GPay / Navi / PhonePe QR code)
+            const sender = await prisma.user.findUnique({ where: { id: payerId } });
+            if (!sender || Number(sender.balance) < Number(amount)) {
+                const error = new Error("Insufficient wallet balance.");
+                error.statusCode = 400;
+                throw error;
+            }
+
+            await prisma.$transaction(async (tx) => {
+                await tx.user.update({
+                    where: { id: payerId },
+                    data: { balance: { decrement: amount } },
+                });
+
+                await tx.transaction.create({
+                    data: {
+                        reference: `ext_upi_${crypto.randomUUID().slice(0, 8)}`,
+                        amount,
+                        type: "TRANSFER",
+                        method: "QR_CODE",
+                        status: "SUCCESS",
+                        fromUserId: payerId,
+                    },
+                });
+            });
+
+            return {
+                reference: `ext_upi_${Date.now()}`,
+                amount,
+                payeeName: parsed.payeeName || parsed.upiId,
+                upiId: parsed.upiId,
+            };
         }
     }
 

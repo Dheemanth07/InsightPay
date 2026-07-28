@@ -83,55 +83,86 @@ export const exportToPDF = (
     doc.setTextColor(15, 20, 25);
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text("Account Details", 40, 105);
+    doc.text("Account Details", 40, 98);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(9.5);
+    doc.setFontSize(9);
     doc.setTextColor(77, 92, 101);
-    doc.text(`Account Holder: ${user?.name || "InsightPay User"}`, 40, 122);
-    doc.text(`Email: ${user?.email || "N/A"}`, 40, 136);
-    doc.text(`UPI ID: ${user?.upiId || "N/A"}`, 40, 150);
+    doc.text(`Account Holder: ${user?.name || "InsightPay User"}`, 40, 114);
+    doc.text(`Email: ${user?.email || "N/A"}`, 40, 127);
+    doc.text(`UPI ID: ${user?.upiId || "N/A"}`, 40, 140);
 
     const generatedDate = new Date().toLocaleDateString("en-IN", {
         day: "numeric",
         month: "short",
         year: "numeric",
     });
-    doc.text(`Generated On: ${generatedDate}`, pageWidth - 40, 122, { align: "right" });
-    doc.text(`Total Transactions: ${transactions.length}`, pageWidth - 40, 136, { align: "right" });
+    const rightMargin = pageWidth - 40;
+
+    doc.text(`Generated On: ${generatedDate}`, rightMargin, 114, { align: "right" });
+    doc.text(`Total Transactions: ${transactions.length}`, rightMargin, 127, { align: "right" });
 
     // ── Financial Totals Calculation ───────────────────────────────────────────
-    let totalDeposits = 0;
+    let totalIncoming = 0;
+    let totalOutgoing = 0;
 
     transactions.forEach((t) => {
         const amt = Number(t.amount) || 0;
-        if (t.type === "DEPOSIT") {
-            totalDeposits += amt;
+        const isIncoming =
+            t.type === "DEPOSIT" ||
+            (t.type === "TRANSFER" &&
+                t.toUser?.email &&
+                user?.email &&
+                t.toUser.email.toLowerCase() === user.email.toLowerCase());
+
+        if (isIncoming) {
+            totalIncoming += amt;
+        } else {
+            totalOutgoing += amt;
         }
     });
 
+    const formatCurrency = (amount: number) => {
+        return `Rs. ${amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
+
     doc.setFont("helvetica", "bold");
     doc.setTextColor(13, 107, 95);
-    doc.text(`Total Incoming: +₹${totalDeposits.toLocaleString("en-IN")}`, pageWidth - 40, 150, { align: "right" });
+    doc.text(`Total Incoming: +${formatCurrency(totalIncoming)}`, rightMargin, 140, { align: "right" });
+
+    doc.setTextColor(220, 38, 38);
+    doc.text(`Total Outgoing: -${formatCurrency(totalOutgoing)}`, rightMargin, 153, { align: "right" });
 
     // ── Divider Line ───────────────────────────────────────────────────────────
     doc.setDrawColor(230, 234, 238);
     doc.setLineWidth(1);
-    doc.line(40, 165, pageWidth - 40, 165);
+    doc.line(40, 166, pageWidth - 40, 166);
 
     // ── Transaction Table ──────────────────────────────────────────────────────
-    const tableData = transactions.map((t) => [
-        new Date(t.createdAt).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" }),
-        t.reference ? t.reference.slice(-8) : `#${t.id}`,
-        t.type,
-        t.category?.name || "General",
-        t.type === "DEPOSIT" ? "Self" : t.toUser?.name || t.fromUser?.name || "Merchant",
-        t.status,
-        `${t.type === "DEPOSIT" ? "+" : "-"}₹${Number(t.amount).toLocaleString("en-IN")}`,
-    ]);
+    const tableData = transactions.map((t) => {
+        const isIncoming =
+            t.type === "DEPOSIT" ||
+            (t.type === "TRANSFER" &&
+                t.toUser?.email &&
+                user?.email &&
+                t.toUser.email.toLowerCase() === user.email.toLowerCase());
+
+        const sign = isIncoming ? "+" : "-";
+        const amtVal = Math.abs(Number(t.amount) || 0);
+
+        return [
+            new Date(t.createdAt).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" }),
+            t.reference ? t.reference.slice(-8) : `#${t.id}`,
+            t.type,
+            t.category?.name || "General",
+            t.type === "DEPOSIT" ? "Self" : t.toUser?.name || t.fromUser?.name || "Merchant",
+            t.status,
+            `${sign} ${formatCurrency(amtVal)}`,
+        ];
+    });
 
     autoTable(doc, {
-        startY: 180,
+        startY: 178,
         margin: { left: 40, right: 40 },
         head: [["Date", "Ref ID", "Type", "Category", "Party", "Status", "Amount"]],
         body: tableData,

@@ -8,5 +8,12 @@ export default defineConfig({
     server: {
         // allow access from network (bind to 0.0.0.0)
         host: true,
+        proxy: {
+            "/api": {
+                target: "http://localhost:8000",
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/api/, ""),
+            },
+        },
     },
 });

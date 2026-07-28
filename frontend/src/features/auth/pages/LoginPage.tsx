@@ -47,7 +47,22 @@ export function LoginPage() {
         }
     };
 
-    if (loading) return <p className="page-status">Checking session...</p>;
+    if (loading) {
+        return (
+            <main className="auth-page flex items-center justify-center min-h-[60vh]">
+                <div className="flex flex-col items-center justify-center p-8 text-center space-y-4">
+                    <div className="relative flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full border-3 border-[#0d6b5f]/20 border-t-[#0d6b5f] animate-spin" />
+                        <div className="absolute w-5 h-5 rounded-full bg-[#0d6b5f]/10 animate-ping" />
+                    </div>
+                    <div className="space-y-1">
+                        <h3 className="text-sm font-bold text-gray-800 tracking-wide">InsightPay</h3>
+                        <p className="text-xs text-gray-500 font-medium animate-pulse">Verifying secure session...</p>
+                    </div>
+                </div>
+            </main>
+        );
+    }
 
     return (
         <main className="auth-page">

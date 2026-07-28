@@ -19,8 +19,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }, []);
 
     const login = useCallback(async () => {
-        await fetchUser();
-    }, [fetchUser]);
+        const response = await getMe();
+        setUser(response.data);
+    }, []);
 
     const logout = useCallback(async () => {
         try {

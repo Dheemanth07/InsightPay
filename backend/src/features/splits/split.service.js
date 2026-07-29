@@ -30,8 +30,8 @@ export const initiateSplit = async (requesterId, { transactionId, splits }) => {
         throw error;
     }
 
-    const payerIds = splits.map(s => Number(s.payerId));
-    const uniquePayers = [...new Set(payerIds)];
+    const uniquePayers = [...new Set(splits.map(s => Number(s.payerId)))];
+
     
     if (uniquePayers.includes(requesterId)) {
         const error = new Error("You cannot split an expense with yourself");

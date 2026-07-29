@@ -301,9 +301,6 @@ export const generateCategoryTrends = async (userId) => {
         getSpendingGroupedByCategory(userId, lastMonthStart),
     ]);
 
-    const thisMap = Object.fromEntries(thisMonth.categories.map(c => [c.category, c.amount]));
-    const lastMap = Object.fromEntries(lastMonth.categories.map(c => [c.category, c.amount]));
-
     // If no categories in DB, fetch all user/system categories
     if (thisMonth.categories.length === 0) {
         const allCats = await prisma.category.findMany({ select: { name: true } });
@@ -315,23 +312,23 @@ export const generateCategoryTrends = async (userId) => {
         }));
     }
 
-    const trends = [];
-    for (const [category, thisAmount] of Object.entries(thisMap)) {
-        const lastAmount = lastMap[category] || 0;
+    const lastMap = new Map(lastMonth.categories.map(c => [c.category, c.amount]));
+
+    return thisMonth.categories.map(({ category, amount: thisAmount }) => {
+        const lastAmount = lastMap.get(category) || 0;
         if (lastAmount === 0) {
-            trends.push({ category, direction: "new", percent: null, label: "New this month" });
-        } else {
-            const pct = Math.round(((thisAmount - lastAmount) / lastAmount) * 100);
-            trends.push({
-                category,
-                direction: pct > 0 ? "up" : pct < 0 ? "down" : "flat",
-                percent: Math.abs(pct),
-                label: pct === 0 ? "Same as last month" : `${Math.abs(pct)}% ${pct > 0 ? "↑" : "↓"} vs last month`,
-            });
+            return { category, direction: "new", percent: null, label: "New this month" };
         }
-    }
-    return trends;
+        const pct = Math.round(((thisAmount - lastAmount) / lastAmount) * 100);
+        return {
+            category,
+            direction: pct > 0 ? "up" : pct < 0 ? "down" : "flat",
+            percent: Math.abs(pct),
+            label: pct === 0 ? "Same as last month" : `${Math.abs(pct)}% ${pct > 0 ? "↑" : "↓"} vs last month`,
+        };
+    });
 };
+
 
 // ─────────────────────────────────────────────
 // 3. Spend velocity — burn rate from balance

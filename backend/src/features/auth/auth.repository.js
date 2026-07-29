@@ -56,35 +56,25 @@ export const createUser = ({ name, email, password }) => {
 };
 
 export const getFrequentContactIds = async (userId) => {
-    // 1. Transactions sent by the user to others
-    const sentTxns = await prisma.transaction.findMany({
-        where: {
-            fromUserId: userId,
-            toUserId: { not: null }
-        },
-        select: { toUserId: true }
-    });
-
-    // 2. Transactions received by the user from others
-    const receivedTxns = await prisma.transaction.findMany({
-        where: {
-            toUserId: userId,
-            fromUserId: { not: null }
-        },
-        select: { fromUserId: true }
-    });
-
-    // 3. Split requests initiated by the user
-    const sentSplits = await prisma.splitRequest.findMany({
-        where: { requesterId: userId },
-        select: { payerId: true }
-    });
-
-    // 4. Split requests received by the user
-    const receivedSplits = await prisma.splitRequest.findMany({
-        where: { payerId: userId },
-        select: { requesterId: true }
-    });
+    // Run all 4 contact interaction queries concurrently in parallel
+    const [sentTxns, receivedTxns, sentSplits, receivedSplits] = await Promise.all([
+        prisma.transaction.findMany({
+            where: { fromUserId: userId, toUserId: { not: null } },
+            select: { toUserId: true },
+        }),
+        prisma.transaction.findMany({
+            where: { toUserId: userId, fromUserId: { not: null } },
+            select: { fromUserId: true },
+        }),
+        prisma.splitRequest.findMany({
+            where: { requesterId: userId },
+            select: { payerId: true },
+        }),
+        prisma.splitRequest.findMany({
+            where: { payerId: userId },
+            select: { requesterId: true },
+        }),
+    ]);
 
     const counts = {};
     const increment = (id) => {
@@ -106,6 +96,7 @@ export const getFrequentContactIds = async (userId) => {
 
     return { topIds, counts };
 };
+
 
 export const getFrequentContacts = async (userId) => {
     const { topIds, counts } = await getFrequentContactIds(userId);

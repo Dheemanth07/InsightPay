@@ -78,7 +78,8 @@ const parseSignedQrData = (qrData) => {
 
 export const generateQrForPayment = async (receiverId, amount) => {
     const reference = `qr_${crypto.randomUUID()}`;
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins (Industry Standard for Dynamic Payment QRs)
+
 
     const user = await findUserForQrGeneration(receiverId);
     const upiId = user?.upiId || `${user?.email ? user.email.split("@")[0] : "user"}@insightpay`;

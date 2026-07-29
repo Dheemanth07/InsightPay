@@ -96,3 +96,68 @@ export const getSpendingGroupedByCategory = async (userId, startDate) => {
         })),
     };
 };
+
+export const findDueSubscriptions = (userId, now) => {
+    return prisma.subscription.findMany({
+        where: {
+            userId,
+            nextBillingDate: { lte: now },
+        },
+    });
+};
+
+export const findOrCreateBillsCategory = async () => {
+    let billsCategory = await prisma.category.findFirst({
+        where: { name: "Bills" },
+    });
+    if (!billsCategory) {
+        billsCategory = await prisma.category.create({
+            data: {
+                name: "Bills",
+                type: "EXPENSE",
+                isSystem: true,
+            },
+        });
+    }
+    return billsCategory;
+};
+
+export const processSubscriptionAutoDeduction = async (userId, sub, billsCategoryId, nextBillingDate) => {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { balance: true },
+    });
+
+    const subAmount = Number(sub.amount);
+    const userBalance = Number(user.balance);
+
+    if (userBalance < subAmount) {
+        return { success: false, amount: subAmount };
+    }
+
+    await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+            where: { id: userId },
+            data: { balance: { decrement: sub.amount } },
+        });
+
+        await tx.transaction.create({
+            data: {
+                amount: sub.amount,
+                type: "WITHDRAWAL",
+                status: "SUCCESS",
+                method: "SYSTEM",
+                fromUserId: userId,
+                categoryId: billsCategoryId || undefined,
+                reference: `SUB-${sub.id}-${Date.now()}`,
+            },
+        });
+
+        await tx.subscription.update({
+            where: { id: sub.id },
+            data: { nextBillingDate },
+        });
+    });
+
+    return { success: true, amount: subAmount };
+};

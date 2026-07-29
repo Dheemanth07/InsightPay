@@ -91,3 +91,57 @@ export const getQrTransactionStatus = (reference) => {
         },
     });
 };
+
+export const findUserForQrGeneration = (receiverId) => {
+    return prisma.user.findUnique({
+        where: { id: receiverId },
+        select: { id: true, name: true, upiId: true, email: true },
+    });
+};
+
+export const findUserByUpiOrEmail = (upiId) => {
+    if (!upiId) return null;
+    const constructedEmail = `${upiId.split("@")[0]}@gmail.com`;
+    return prisma.user.findFirst({
+        where: {
+            OR: [{ upiId }, { email: constructedEmail }],
+        },
+    });
+};
+
+export const processExternalUpiPayment = async (payerId, amount, payeeName, upiId) => {
+    const sender = await prisma.user.findUnique({ where: { id: payerId } });
+    if (!sender || Number(sender.balance) < Number(amount)) {
+        const error = new Error("Insufficient wallet balance.");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const reference = `ext_upi_${crypto.randomUUID().slice(0, 8)}`;
+
+    await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+            where: { id: payerId },
+            data: { balance: { decrement: amount } },
+        });
+
+        await tx.transaction.create({
+            data: {
+                reference,
+                amount,
+                type: "TRANSFER",
+                method: "QR_CODE",
+                status: "SUCCESS",
+                fromUserId: payerId,
+            },
+        });
+    });
+
+    return {
+        reference: `ext_upi_${Date.now()}`,
+        amount,
+        payeeName: payeeName || upiId,
+        upiId,
+    };
+};
+

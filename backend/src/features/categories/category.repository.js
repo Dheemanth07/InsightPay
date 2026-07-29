@@ -49,3 +49,44 @@ export const updateCategoryBudgetRepo = (userId, categoryId, monthlyBudget) => {
         data: { monthlyBudget: monthlyBudget !== null ? monthlyBudget : null },
     });
 };
+
+export const findOrCreateDefaultCategoryRepo = async (userId) => {
+    let category = await prisma.category.findFirst({
+        where: { userId, isDefault: true },
+    });
+
+    if (!category) {
+        category = await prisma.category.create({
+            data: {
+                userId,
+                name: "Uncategorized",
+                type: "EXPENSE",
+                isDefault: true,
+                isSystem: true,
+            },
+        });
+    }
+    return category;
+};
+
+export const seedDefaultCategoriesRepo = async (userId) => {
+    const categories = [
+        { name: "Uncategorized", type: "EXPENSE", isDefault: true, isSystem: true },
+        { name: "Food", type: "EXPENSE", isSystem: true },
+        { name: "Transport", type: "EXPENSE", isSystem: true },
+        { name: "Shopping", type: "EXPENSE", isSystem: true },
+        { name: "Bills", type: "EXPENSE", isSystem: true },
+        { name: "Entertainment", type: "EXPENSE", isSystem: true },
+        { name: "Travel", type: "EXPENSE", isSystem: true },
+        { name: "People", type: "EXPENSE", isSystem: true },
+    ];
+
+    await prisma.category.createMany({
+        data: categories.map((c) => ({
+            ...c,
+            userId,
+        })),
+        skipDuplicates: true,
+    });
+};
+

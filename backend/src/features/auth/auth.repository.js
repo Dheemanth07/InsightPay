@@ -32,6 +32,14 @@ export const updateTxPin = (id, hashedPin, upiId) => {
     });
 };
 
+export const getUserTxPin = (id) => {
+    return prisma.user.findUnique({
+        where: { id },
+        select: { txPin: true },
+    });
+};
+
+
 export const createUser = ({ name, email, password }) => {
     const cleanName = name.toLowerCase().replace(/[^a-z0-9]/g, "");
     const generatedUpiId = `${cleanName || "user"}${Math.floor(100 + Math.random() * 900)}@insightpay`;

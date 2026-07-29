@@ -2,9 +2,11 @@ import {
     getUpcomingSubscriptions,
     createSubscription,
     getSpendingGroupedByCategory,
+    findDueSubscriptions,
+    findOrCreateBillsCategory,
+    processSubscriptionAutoDeduction,
 } from "./analytics.repository.js";
 import logger from "../../utils/logger.js";
-import prisma from "../../prisma.js";
 
 
 // ─────────────────────────────────────────────
@@ -14,79 +16,45 @@ export const getUpcomingLiabilitiesForUser = async (userId) => {
     const now = new Date();
 
     // 1. Process Due/Overdue Bills Auto-Deduction Engine
-    const dueSubscriptions = await prisma.subscription.findMany({
-        where: {
-            userId,
-            nextBillingDate: { lte: now },
-        },
-    });
+    const dueSubscriptions = await findDueSubscriptions(userId, now);
 
     const autoDeductedEvents = [];
     const insufficientBalanceEvents = [];
 
     if (dueSubscriptions.length > 0) {
         // Find or create 'Bills' category
-        let billsCategory = await prisma.category.findFirst({
-            where: { name: "Bills" },
-        });
+        const billsCategory = await findOrCreateBillsCategory();
 
         for (const sub of dueSubscriptions) {
-            const user = await prisma.user.findUnique({
-                where: { id: userId },
-                select: { balance: true },
-            });
+            let nextDate = new Date(sub.nextBillingDate);
+            while (nextDate <= now) {
+                nextDate.setMonth(nextDate.getMonth() + 1);
+            }
 
-            const subAmount = Number(sub.amount);
-            const userBalance = Number(user.balance);
+            const result = await processSubscriptionAutoDeduction(
+                userId,
+                sub,
+                billsCategory?.id,
+                nextDate,
+            );
 
-            if (userBalance >= subAmount) {
-                // Sufficient Balance -> Process Auto-Deduction
-                await prisma.$transaction(async (tx) => {
-                    await tx.user.update({
-                        where: { id: userId },
-                        data: { balance: { decrement: sub.amount } },
-                    });
-
-                    await tx.transaction.create({
-                        data: {
-                            fromUserId: userId,
-                            amount: sub.amount,
-                            type: "WITHDRAWAL",
-                            method: "SYSTEM",
-                            status: "SUCCESS",
-                            reference: `AUTO_BILL_${sub.id.slice(0, 8)}_${Date.now()}`,
-                            categoryId: billsCategory?.id || null,
-                        },
-                    });
-
-                    // Advance nextBillingDate to future date
-                    let nextDate = new Date(sub.nextBillingDate);
-                    while (nextDate <= now) {
-                        nextDate.setMonth(nextDate.getMonth() + 1);
-                    }
-
-                    await tx.subscription.update({
-                        where: { id: sub.id },
-                        data: { nextBillingDate: nextDate },
-                    });
-                });
-
+            if (result.success) {
                 autoDeductedEvents.push({
                     id: sub.id,
                     merchantName: sub.merchantName,
-                    amount: subAmount,
+                    amount: result.amount,
                 });
-                logger.info({ userId, subId: sub.id, amount: subAmount }, "Auto-debited bill payment");
+                logger.info({ userId, subId: sub.id, amount: result.amount }, "Auto-debited bill payment");
             } else {
-                // Insufficient Balance -> Notify User
                 insufficientBalanceEvents.push({
                     id: sub.id,
                     merchantName: sub.merchantName,
-                    amount: subAmount,
+                    amount: result.amount,
                 });
             }
         }
     }
+
 
     // 2. Fetch Upcoming Subscriptions for Next 7 Days
     const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);

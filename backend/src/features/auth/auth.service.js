@@ -1,5 +1,4 @@
 import bcrypt from "bcrypt";
-import prisma from "../../prisma.js";
 import { signinToken } from "../../utils/jwt.js";
 import { seedDefaultCategories } from "../../utils/category.js";
 import {
@@ -7,6 +6,7 @@ import {
     findUserByEmail,
     findUserProfileById,
     getFrequentContacts,
+    getUserTxPin,
     searchUsers,
     updateTxPin,
 } from "./auth.repository.js";
@@ -65,7 +65,7 @@ export const verifyTxPin = async (userId, pin) => {
         error.statusCode = 400;
         throw error;
     }
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { txPin: true } });
+    const user = await getUserTxPin(userId);
     if (!user || !user.txPin) {
         const error = new Error("Transaction PIN not set. Please set up a 6-digit PIN in your security settings first.");
         error.statusCode = 400;
@@ -79,6 +79,7 @@ export const verifyTxPin = async (userId, pin) => {
     }
     return true;
 };
+
 
 export const getUserProfile = (userId) => {
     return findUserProfileById(userId);

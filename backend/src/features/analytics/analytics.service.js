@@ -153,16 +153,17 @@ Roast my spending and give me one clear action item.`;
             logger.error({ err }, "Error communicating with Gemini API");
         }
     }
-    if (process.env.OPENAI_API_KEY) {
+
+    if (process.env.GROQ_API_KEY) {
         try {
-            const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                    Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
                 },
                 body: JSON.stringify({
-                    model: "gpt-4o-mini",
+                    model: "llama-3.3-70b-versatile",
                     messages: [
                         { role: "system", content: systemPrompt },
                         { role: "user", content: userPrompt },
@@ -171,46 +172,81 @@ Roast my spending and give me one clear action item.`;
                     temperature: 0.7,
                 }),
             });
+
             if (response.ok) {
                 const data = await response.json();
                 const text = data.choices?.[0]?.message?.content?.trim();
                 if (text) return text;
             } else {
-                logger.error({ statusText: response.statusText }, "OpenAI API request failed");
+                logger.error({ statusText: response.statusText }, "Groq API request failed");
             }
         } catch (err) {
-            logger.error({ err }, "Error communicating with OpenAI API");
+            logger.error({ err }, "Error communicating with Groq API");
         }
     }
+
     return generateMockRoast(totalSpending, categories);
 };
 
 // ─────────────────────────────────────────────
-// Helper: call Gemini with a system + user prompt
+// Helper: call LLM (Gemini with Groq failover)
 // ─────────────────────────────────────────────
-const callGemini = async (systemPrompt, userPrompt, maxTokens = 80) => {
-    if (!process.env.GEMINI_API_KEY) return null;
-    try {
-        const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: userPrompt }] }],
-                    systemInstruction: { parts: [{ text: systemPrompt }] },
-                    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.5 },
-                }),
+const callLLM = async (systemPrompt, userPrompt, maxTokens = 80) => {
+    if (process.env.GEMINI_API_KEY) {
+        try {
+            const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: userPrompt }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.5 },
+                    }),
+                }
+            );
+            if (res.ok) {
+                const data = await res.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+                if (text) return text;
             }
-        );
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
-    } catch (err) {
-        logger.error({ err }, "Gemini call failed");
-        return null;
+        } catch (err) {
+            logger.error({ err }, "Gemini call failed");
+        }
     }
+
+    if (process.env.GROQ_API_KEY) {
+        try {
+            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+                },
+                body: JSON.stringify({
+                    model: "llama-3.3-70b-versatile",
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { role: "user", content: userPrompt },
+                    ],
+                    max_tokens: maxTokens,
+                    temperature: 0.5,
+                }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const text = data.choices?.[0]?.message?.content?.trim();
+                if (text) return text;
+            }
+        } catch (err) {
+            logger.error({ err }, "Groq call failed");
+        }
+    }
+
+    return null;
 };
+
 
 // ─────────────────────────────────────────────
 // 1. Suggest a category for a transaction description
@@ -224,7 +260,7 @@ export const suggestTransactionCategory = async (description, availableCategorie
 Available categories: ${categoryList}
 Best matching category:`;
 
-    const result = await callGemini(system, user, 20);
+    const result = await callLLM(system, user, 20);
     if (result && availableCategories.some(c => c.toLowerCase() === result.toLowerCase())) {
         return availableCategories.find(c => c.toLowerCase() === result.toLowerCase());
     }
@@ -335,7 +371,7 @@ export const generateSpendVelocity = async (userId) => {
     const system = `You are a blunt financial assistant. Write ONE short sentence (under 15 words) describing how long the user's balance will last at their current spend rate. Be direct, no filler words.`;
     const userPrompt = `Balance: ₹${balance.toFixed(0)}, average daily spend: ₹${dailyRate.toFixed(0)}, estimated days remaining: ${daysRemaining}.`;
 
-    const aiMessage = await callGemini(system, userPrompt, 40);
+    const aiMessage = await callLLM(system, userPrompt, 40);
     return {
         daysRemaining,
         dailyRate: Math.round(dailyRate),

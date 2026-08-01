@@ -8,6 +8,7 @@ import {
     generateCashflowNarrative,
 } from "./analytics.service.js";
 import logger from "../../utils/logger.js";
+import prisma from "../../prisma.js";
 
 
 export const getUpcomingLiabilities = async (req, res) => {

@@ -7,6 +7,7 @@ import {
     processSubscriptionAutoDeduction,
 } from "./analytics.repository.js";
 import logger from "../../utils/logger.js";
+import prisma from "../../prisma.js";
 
 
 // ─────────────────────────────────────────────
@@ -130,7 +131,7 @@ Roast my spending and give me one clear action item.`;
     if (process.env.GEMINI_API_KEY) {
         try {
             const response = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -195,7 +196,7 @@ const callLLM = async (systemPrompt, userPrompt, maxTokens = 80) => {
     if (process.env.GEMINI_API_KEY) {
         try {
             const res = await fetch(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -389,7 +390,7 @@ export const generateCashflowNarrative = async (cashFlow) => {
     const system = `You are a blunt financial analyst. Analyze 6 months of income vs expense data and write 2 sentences max. Identify the most notable pattern (spike, consistent overspend, improving trend etc). Be specific with months and numbers. No filler, no praise.`;
     const userPrompt = `Monthly cashflow data:\n${summary}\nWrite a 2-sentence interpretation.`;
 
-    const aiText = await callGemini(system, userPrompt, 120);
+    const aiText = await callLLM(system, userPrompt, 120);
     if (aiText) return aiText;
 
     // Smart Mock Fallback based on cashflow array calculation
